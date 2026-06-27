@@ -1,0 +1,9 @@
+pyproject.toml
+src/systematic_macro_uq/__init__.py
+src/systematic_macro_uq.egg-info/PKG-INFO
+src/systematic_macro_uq.egg-info/SOURCES.txt
+src/systematic_macro_uq.egg-info/dependency_links.txt
+src/systematic_macro_uq.egg-info/requires.txt
+src/systematic_macro_uq.egg-info/top_level.txt
+src/systematic_macro_uq/data/__init__.py
+src/systematic_macro_uq/data/futures.py
