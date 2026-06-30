@@ -8,7 +8,7 @@ def construct_equal_weight_positions(df, signal_col, n_markets):
     df["position"] = df[signal_col].fillna(0) * (1/n_markets)
     df["return_contribution"] = df["position"] * df["held_daily_return"].fillna(0)
 
-    return df[["date", "market", "position", "return_contribution"]]
+    return df[["date", "market", "position", "held_daily_return", "return_contribution"]]
 
 
 def construct_vol_scaled_positions(df, signal_col, vol_lookback=63):
@@ -32,19 +32,19 @@ def construct_vol_scaled_positions(df, signal_col, vol_lookback=63):
     
     df["return_contribution"] = df["position"].fillna(0) * df["held_daily_return"].fillna(0)
 
-    return df[["date", "market", "position", "return_contribution"]]
+    return df[["date", "market", "position", "held_daily_return", "return_contribution"]]
 
 
-def aggregate_portfolio(position_df, strategy_name):
+def aggregate_portfolio(position_df, cost_bps):
 
-    portfolio = (position_df.groupby("date")["return_contribution"]
-                 .sum()
-                 .to_frame()
-                 )
+    cost_col = f"cost_{cost_bps}bps"
+    portfolio = position_df.groupby("date")[["return_contribution", cost_col]].sum()
+    portfolio = portfolio.rename(columns={
+        "return_contribution": "gross_return",
+        cost_col: "cost",
+    })
     
-    portfolio["equity_curve"] = (1 + portfolio["return_contribution"]).cumprod()
-    
-    portfolio = portfolio.rename(columns = {"return_contribution" : f"portfolio_return_{strategy_name}",
-                                            "equity_curve" : f"equity_curve_{strategy_name}"})
+    portfolio["net_return"] = portfolio["gross_return"] - portfolio["cost"]
+    portfolio["equity_curve"] = (1 + portfolio["net_return"]).cumprod()
 
     return portfolio

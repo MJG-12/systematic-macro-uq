@@ -24,6 +24,7 @@ class RunConfig:
         "ZC": 14,
         "ZS": 14,
     })
+    transaction_costs: list[int] = field(default_factory=lambda: [5, 10, 15])
 
     @property
     def markets(self):
