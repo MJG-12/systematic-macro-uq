@@ -92,16 +92,22 @@ def build_daily_statistic_data(raw_df, statistic="settlement_price"):
     return df
 
 
-def compute_contract_returns(df):
-    df = df.sort_values(["instrument_id", "date"]).copy()
-    df["contract_return"] = (
-        df.groupby(["instrument_id"])["settlement_price"]
-          .pct_change()
-    )
-    return df[["date", "instrument_id", "contract_return"]]
+def build_contract_panel(universe_df, prices_df, volumes_df):
 
-
-def build_roll_schedule(universe_df, prices_df, volumes_df, min_days_to_expiry):
+    panel_cols = [
+        "date",
+        "market",
+        "instrument_id",
+        "raw_symbol",
+        "settlement_price",
+        "volume",
+        "activation",
+        "expiration",
+        "days_to_expiry",
+        "ts_ref",
+        "ts_recv_stat",
+        "ts_recv_def",
+    ]
 
     prices_and_volumes = pd.merge(prices_df, 
                                   volumes_df[["date", "instrument_id", "volume"]],
@@ -122,26 +128,70 @@ def build_roll_schedule(universe_df, prices_df, volumes_df, min_days_to_expiry):
     assert df["market"].nunique() == 1
 
     df["live"] = df["date"].between(df["activation"].dt.normalize(), df["expiration"].dt.normalize(), inclusive="left")
-    df = df.loc[df["live"]]
-    df["days_to_expiry"] = (df["expiration"].dt.normalize() - df["date"]).dt.days
+    df["volume"] = df["volume"].fillna(0)
+    df["days_to_expiry"] = (
+        df["expiration"].dt.normalize() - df["date"]
+    ).dt.days
+    contract_panel = df.loc[df["live"], panel_cols]
+    
+    return contract_panel
 
+
+def build_contract_returns_data(contract_panel):
+
+    df = contract_panel.sort_values(["instrument_id", "date"]).copy()
+    df["contract_return"] = (
+        df.groupby(["instrument_id"])["settlement_price"]
+          .pct_change()
+    )
+    df = df.rename(columns = {"instrument_id" : "held_instrument_id",
+                              "contract_return" : "held_daily_return",
+                              "settlement_price" : "held_settlement_price"
+                              })
+    return df[[
+        "date",
+        "held_instrument_id",
+        "held_daily_return",
+        "held_settlement_price",
+    ]]
+
+
+def build_roll_schedule(contract_panel, min_days_to_expiry):
+
+    schedule_cols = [
+        "date",
+        "market",
+        "selected_instrument_id",
+        "selected_raw_symbol",
+        "selected_settlement_price",
+        "selected_volume",
+        "selected_days_to_expiry",
+        "selected_expiration",
+        "held_instrument_id",
+        "held_raw_symbol",
+        "rolled_today",
+    ]
+     
+    df = contract_panel.copy()
+   
     eligible = df.loc[(df["days_to_expiry"] > min_days_to_expiry)].copy()
     eligible = eligible.sort_values(["ts_ref", "expiration", "instrument_id"])
     eligible ["rank"] = eligible.groupby("date").cumcount() + 1
-    eligible["volume"] = eligible["volume"].fillna(0)
     
     front = eligible.loc[eligible["rank"]==1, ["date", "volume"]].rename(
     columns={"volume": "front_volume"})
     next_ = eligible.loc[eligible["rank"]==2, ["date", "volume"]].rename(
     columns={"volume": "next_volume"})
 
-    decision = pd.merge(front, next_, on="date", how="left")
-    decision["selected_rank"] = np.where(
-        decision["next_volume"] > decision["front_volume"],
-        2,
-        1,
+    decision = pd.merge(front, next_, on="date", how="left").sort_values("date")
+    decision["liquidity_roll"] = decision["next_volume"] > decision["front_volume"]
+    decision["confirmed_liquidity_roll"] = (
+        decision["liquidity_roll"]
+        & decision["liquidity_roll"].shift(1).fillna(False)
     )
-
+    decision["selected_rank"] = np.where(decision["confirmed_liquidity_roll"],
+                                         2,
+                                         1)
     eligible = pd.merge(
         eligible,
         decision[["date", "selected_rank"]],
@@ -149,57 +199,99 @@ def build_roll_schedule(universe_df, prices_df, volumes_df, min_days_to_expiry):
         how="left",
     )
 
-    schedule = eligible.loc[eligible["rank"] == eligible["selected_rank"]].drop(columns=["selected_rank"]).sort_values("date")
-    schedule = schedule.rename(columns={"instrument_id": "scheduled_instrument_id"})
-    schedule["held_instrument_id"] = schedule["scheduled_instrument_id"].shift(1)
-
-    return schedule 
-
-
-def fetch_and_build_market_return_ts(symbol, price_start, end, definition_start, min_days_to_expiry):
-    universe_raw = fetch_futures_data("definition", symbol, definition_start, end)
-    stats_raw = fetch_futures_data("statistics", symbol, price_start, end)
-
-    universe_df = build_futures_metadata(universe_raw)
-    prices_df = build_daily_statistic_data(stats_raw, "settlement_price")
-    volumes_df = build_daily_statistic_data(stats_raw, "volume")
-
-    schedule = build_roll_schedule(universe_df, prices_df, volumes_df, min_days_to_expiry)
-    contract_returns_df = compute_contract_returns(prices_df).rename(
-        columns={"instrument_id": "held_instrument_id"}
+    candidate = (
+        eligible.loc[eligible["rank"] == eligible["selected_rank"]]
+        .sort_values("date")
+        .copy()
     )
+    candidate["min_selected_expiration"] = candidate["expiration"].cummax()
 
-    market_returns_df = pd.merge(schedule, 
-                                 contract_returns_df,
-                                 on = ["date", "held_instrument_id"],
-                                 how = "left"
-                                 )
+    eligible = pd.merge(eligible,
+                        candidate[["date", "min_selected_expiration"]],
+                        on="date",
+                        how="left")
+
+    eligible = eligible.loc[eligible["expiration"] >= eligible["min_selected_expiration"]]
+
+    schedule = (eligible
+                .sort_values(["date", "expiration", "instrument_id"])
+                .drop_duplicates("date", keep="first")
+    )
     
-    final_cols = [
+    schedule = schedule.rename(columns={"instrument_id": "selected_instrument_id",
+                                        "raw_symbol" : "selected_raw_symbol",
+                                        "settlement_price" : "selected_settlement_price",
+                                        "volume" : "selected_volume",
+                                        "expiration" : "selected_expiration",
+                                        "days_to_expiry": "selected_days_to_expiry"})
+                                  
+    schedule["held_instrument_id"] = schedule["selected_instrument_id"].shift(1)
+    schedule["held_raw_symbol"] = schedule["selected_raw_symbol"].shift(1)
+    schedule["rolled_today"] = (schedule["selected_instrument_id"] != schedule["held_instrument_id"]) & (~schedule["held_instrument_id"].isna())
+    
+    return schedule[schedule_cols]
+
+
+def build_carry_data(panel, roll_schedule):
+
+    carry_cols = [
         "date",
-        "market",
-        "return",
-        "scheduled_instrument_id",
         "held_instrument_id",
-        "raw_symbol",
-        "settlement_price",
-        "volume",
-        "rank",
-        "days_to_expiry",
-        "expiration",
-        "maturity_year",
-        "maturity_month",
-        "ts_ref",
-        "ts_recv_stat",
-        "ts_recv_def",
+        "held_volume",
+        "held_expiration",
+        "held_days_to_expiry",
+        "curve_next_instrument_id",
+        "curve_next_raw_symbol",
+        "curve_next_settlement_price",
+        "curve_next_volume",
+        "curve_next_expiration",
+        "curve_next_days_to_expiry",
+        "carry_day_gap",
+        "held_carry_annualized",
     ]
+    curve = panel.sort_values(["market", "date", "expiration", "instrument_id"]).copy()
 
-    return market_returns_df.rename(columns={"contract_return" : "return"})[final_cols]
+    g = curve.groupby(["market", "date"], sort=False)
+    curve["curve_next_instrument_id"] = g["instrument_id"].shift(-1)
+    curve["curve_next_raw_symbol"] = g["raw_symbol"].shift(-1)
+    curve["curve_next_settlement_price"] = g["settlement_price"].shift(-1)
+    curve["curve_next_volume"] = g["volume"].shift(-1)
+    curve["curve_next_expiration"] = g["expiration"].shift(-1)
+    curve["curve_next_days_to_expiry"] = g["days_to_expiry"].shift(-1)
+    
+    curve = curve.rename(columns = {
+        "raw_symbol" : "held_raw_symbol",
+        "settlement_price" : "held_settlement_price",
+        "volume" : "held_volume",
+        "expiration" : "held_expiration",
+        "days_to_expiry" : "held_days_to_expiry",
+        })
 
+    schedule = roll_schedule[["date", "market", "held_instrument_id"]].copy()
 
-def build_futures_return_dataset(markets, price_start, end, definition_start, min_days_to_expiry):
-    schedules = [
-        fetch_and_build_market_return_ts(m, price_start, end, definition_start, min_days_to_expiry)
-        for m in markets
-    ]
-    return pd.concat(schedules, ignore_index=True)
+    carry_data = pd.merge(
+        curve,
+        schedule,
+        left_on = ["date", "market", "instrument_id"],
+        right_on = ["date", "market", "held_instrument_id"],
+        how = "right"
+    )
+    
+    carry_data["carry_day_gap"] = (
+        carry_data["curve_next_expiration"] - carry_data["held_expiration"]
+    ).dt.days
+
+    valid = (
+        (carry_data["held_settlement_price"] > 0)
+        & (carry_data["curve_next_settlement_price"] > 0)
+        & (carry_data["carry_day_gap"] > 0)
+    )
+    
+    price_ratio = carry_data["held_settlement_price"] / carry_data["curve_next_settlement_price"]
+
+    carry_data["held_carry_annualized"] = (
+        np.log(price_ratio) * 365 / carry_data["carry_day_gap"]
+    ).where(valid)
+
+    return carry_data[carry_cols]
+

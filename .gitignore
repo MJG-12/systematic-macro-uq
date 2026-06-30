@@ -5,4 +5,7 @@
 __pycache__/
 *.pyc
 
-data/raw_data/databento_info.py
+data/raw/
+data/processed/*
+!data/processed/.gitkeep
+logs/
