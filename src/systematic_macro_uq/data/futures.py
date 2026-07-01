@@ -13,20 +13,24 @@ def get_databento_client():
     return db.Historical(api_key)
 
 
-def fetch_futures_data(schema, symbol, start_date, end_date):
+def fetch_futures_data(schema, market, start_date, end_date,  symbols=None, stype_in="parent"):
     """Returns Databento raw futures data. 
     """
     client = get_databento_client()
 
+    if symbols is None:
+        symbols = f"{market}.FUT"
+
     df = client.timeseries.get_range(
         dataset="GLBX.MDP3",
-        schema=f"{schema}",
-        symbols=f"{symbol}.FUT",
-        stype_in="parent",
+        schema=schema,
+        symbols=symbols,
+        stype_in=stype_in,
         start=start_date,
-        end=end_date,
+        end=end_date
     ).to_df()
-    df["market"] = symbol
+
+    df["market"] = market
     return df
 
 
@@ -48,6 +52,8 @@ def build_futures_metadata(raw_df):
     ]
     df = raw_df[meta_cols].copy().reset_index()
     df = df.rename(columns = {"ts_recv" : "ts_recv_def"})
+    df = df[df["instrument_class"] == "F"].copy()
+
     return df.sort_values(["ts_recv_def"])
 
 
@@ -73,14 +79,19 @@ def build_daily_statistic_data(raw_df, statistic="settlement_price"):
         "instrument_id",
         "update_action"
     ]
-    df = raw_df[cols].copy().reset_index()
+
+    mask = (
+    (raw_df["stat_type"] == stat_int)
+    & raw_df["ts_ref"].notna()
+    & raw_df[old_col].notna()
+    )
+    df = raw_df.loc[mask, cols].copy().reset_index()
+    
     renamed_columns = {"ts_recv" : "ts_recv_stat",
                         "symbol" : "symbol_stat",
                         old_col : statistic}
     df = df.rename(columns=renamed_columns)
 
-    df = df[df["stat_type"] == stat_int]
-    df = df.dropna(subset=["ts_ref", statistic])
     df["date"] = df["ts_ref"].dt.normalize()
 
     df = (
@@ -124,8 +135,8 @@ def build_contract_panel(universe_df, prices_df, volumes_df):
         direction="backward"
     )
 
-    df = df[df["instrument_class"] == "F"]
     assert df["market"].nunique() == 1
+    assert universe_df["instrument_class"].eq("F").all()
 
     df["live"] = df["date"].between(df["activation"].dt.normalize(), df["expiration"].dt.normalize(), inclusive="left")
     df["volume"] = df["volume"].fillna(0)

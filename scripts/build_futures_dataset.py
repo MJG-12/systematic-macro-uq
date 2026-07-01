@@ -19,19 +19,37 @@ def load_or_fetch_universe(config, market):
     
     universe = fetch_futures_data("definition", market, config.DEFINITION_START, config.END)
     INPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    universe.to_parquet(INPUT_PATH, index=False)
+    universe.to_parquet(INPUT_PATH)
     return universe
 
 
-def load_or_fetch_stats(config, market):
+def load_or_fetch_stats(config, market, universe_df):
 
     INPUT_PATH = config.raw_data_run_dir /  f"stats_{market}.parquet"
     if config.REUSE_DATA and INPUT_PATH.exists():
         return pd.read_parquet(INPUT_PATH)
     
-    stats = fetch_futures_data("statistics", market, config.PRICE_START, config.END)
+    raw_symbols = (
+        universe_df["raw_symbol"]
+        .dropna()
+        .drop_duplicates()
+        .sort_values()
+        .tolist()
+    )
+    
+    stats = fetch_futures_data(
+        "statistics", 
+        market, 
+        config.PRICE_START, 
+        config.END,
+        symbols=raw_symbols,
+        stype_in="raw_symbol"
+    )
+    
+    stats = stats[stats["stat_type"].isin([3, 6])].copy()
+
     INPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    stats.to_parquet(INPUT_PATH, index=False)
+    stats.to_parquet(INPUT_PATH)
     return stats
 
 
@@ -42,9 +60,10 @@ def fetch_and_build_market_dataset(config, market):
         return pd.read_parquet(OUTPUT_PATH)
 
     universe_raw = load_or_fetch_universe(config, market)
-    stats_raw = load_or_fetch_stats(config, market)
-
     universe_df = build_futures_metadata(universe_raw)
+
+    stats_raw = load_or_fetch_stats(config, market, universe_df)
+
     prices_df = build_daily_statistic_data(stats_raw, "settlement_price")
     volumes_df = build_daily_statistic_data(stats_raw, "volume")
 
