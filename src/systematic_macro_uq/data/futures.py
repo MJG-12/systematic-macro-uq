@@ -93,6 +93,7 @@ def build_daily_statistic_data(raw_df, statistic="settlement_price"):
     df = df.rename(columns=renamed_columns)
 
     df["date"] = df["ts_ref"].dt.normalize()
+    df = df.loc[df["date"].dt.weekday < 5].copy()
 
     df = (
     df.sort_values("ts_recv_stat")
