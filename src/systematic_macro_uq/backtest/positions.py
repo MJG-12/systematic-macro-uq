@@ -2,10 +2,20 @@ import pandas as pd
 import numpy as np
 
 
-def construct_equal_weight_positions(df, signal_col, n_markets):
+def construct_equal_weight_positions(df, signal_col):
 
     df = df.sort_values(["date", "market"]).copy()
-    df["position"] = df[signal_col].fillna(0) * (1/n_markets)
+    df["active"] = df[signal_col].fillna(0) != 0
+    df["active_count"] = (
+        df.groupby("date")["active"]
+        .transform("sum")
+    )
+
+    df["position"] = np.where(
+        df["active_count"] > 0,
+        np.sign(df[signal_col].fillna(0)) / df["active_count"],
+        0,
+    )
     df["return_contribution"] = df["position"] * df["held_daily_return"].fillna(0)
 
     return df[["date", "market", "position", "held_daily_return", "return_contribution"]]

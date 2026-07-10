@@ -29,8 +29,7 @@ def run_backtest(config, signals, vol_scaled=True):
         else:
             strategy_name = f"{signal}_equal_weight"
             position_df = construct_equal_weight_positions(signals_df, 
-                                                            signal_col, 
-                                                            len(config.markets))
+                                                            signal_col)
 
         position_df = position_df.copy()
         position_df["strategy"] = strategy_name
@@ -92,5 +91,6 @@ def run_backtest(config, signals, vol_scaled=True):
     
 
 if __name__ == "__main__":
-    signals = ["trend_63d", "trend_126d", "trend_252d", "carry"]
+    # signals = ["trend_63d", "trend_126d", "trend_252d", "carry"]
+    signals = ["trend_composite", "carry"]
     run_backtest(RunConfig(), signals, vol_scaled=True)
