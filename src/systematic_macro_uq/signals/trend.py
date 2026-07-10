@@ -24,11 +24,21 @@ def add_trend_signal(df, lookback):
     return df
 
 
-def create_trend_signals(df, lookback_list=[21, 63, 126, 252]):
+def create_trend_signals(df, lookback_list=[63, 126, 252]):
     
     df = add_return_index(df)
     for lookback in lookback_list:
         df = add_trailing_return(df, lookback)
         df = add_trend_signal(df, lookback)
 
+    df = add_trend_composite_signal(df, lookback_list)
+    return df
+
+
+def add_trend_composite_signal(df, lookback_list):
+
+    df = df.sort_values(["market", "date"]).copy()
+    trend_signals = [f"signal_trend_{lookback}d" for lookback in lookback_list]
+    df["signal_trend_composite"] = df[trend_signals].mean(axis=1)
+  
     return df
