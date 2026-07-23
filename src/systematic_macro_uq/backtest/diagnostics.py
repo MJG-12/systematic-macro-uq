@@ -5,15 +5,17 @@ def compute_backtest_diagnostics(positions_df, portfolio_results_df):
 
     positions_df = positions_df.copy()
     positions_df["abs_position"] = positions_df["position"].abs()
-    positions_df["active_market"] = positions_df["abs_position"]> 0
 
     daily_position_diagnostics = (
         positions_df
         .groupby(["date", "strategy"])
         .agg(
             turnover=("turnover", "sum"),
+            ordinary_turnover=("ordinary_turnover", "sum"),
+            roll_turnover=("roll_turnover", "sum"),
+            roll_trades=("roll_trade", "sum"),
             gross_exposure=("abs_position", "sum"),
-            active_markets=("active_market", "sum"),
+            max_market_exposure=("abs_position", "max"),
         )
         .reset_index()
     )
@@ -23,11 +25,14 @@ def compute_backtest_diagnostics(positions_df, portfolio_results_df):
         .groupby("strategy")
         .agg(
             average_turnover=("turnover", "mean"),
+            average_ordinary_turnover=("ordinary_turnover", "mean"),
+            average_roll_turnover=("roll_turnover", "mean"),
+            total_roll_trades=("roll_trades", "sum"),
             average_gross_exposure=("gross_exposure", "mean"),
+            median_gross_exposure=("gross_exposure", "median"),
+            p95_gross_exposure=("gross_exposure", lambda x: x.quantile(0.95)),
             max_gross_exposure=("gross_exposure", "max"),
-            average_active_markets=("active_markets", "mean"),
-            min_active_markets=("active_markets", "min"),
-            max_active_markets=("active_markets", "max"),
+            max_market_exposure=("max_market_exposure", "max"),
         )
         .reset_index()
     )
@@ -54,12 +59,15 @@ def compute_backtest_diagnostics(positions_df, portfolio_results_df):
             "strategy",
             "cost_bps",
             "average_turnover",
+            "average_ordinary_turnover",
+            "average_roll_turnover",
+            "total_roll_trades",
             "average_cost",
             "average_gross_exposure",
+            "median_gross_exposure",
+            "p95_gross_exposure",
             "max_gross_exposure",
-            "average_active_markets",
-            "min_active_markets",
-            "max_active_markets",
+            "max_market_exposure",
             "average_gross_return",
             "average_net_return",
         ]

@@ -83,7 +83,7 @@ def fetch_and_build_market_dataset(config, market):
     dataset = pd.merge(
         dataset, 
         carry,
-        on = ["date", "held_instrument_id"],
+        on=["date", "market", "selected_instrument_id"],
         how = "left"
     )
     

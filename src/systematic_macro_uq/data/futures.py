@@ -57,7 +57,7 @@ def build_futures_metadata(raw_df):
     return df.sort_values(["ts_recv_def"])
 
 
-def build_daily_statistic_data(raw_df, statistic="settlement_price"):
+def build_daily_statistic_data(raw_df, statistic):
     
     daily_statistics = {
         "settlement_price": (3, "price"),
@@ -248,62 +248,64 @@ def build_carry_data(panel, roll_schedule):
 
     carry_cols = [
         "date",
-        "held_instrument_id",
-        "held_volume",
-        "held_expiration",
-        "held_days_to_expiry",
-        "curve_next_instrument_id",
-        "curve_next_raw_symbol",
-        "curve_next_settlement_price",
-        "curve_next_volume",
-        "curve_next_expiration",
-        "curve_next_days_to_expiry",
+        "market",
+        "selected_instrument_id",
+        "carry_price_difference",
         "carry_day_gap",
-        "held_carry_annualized",
+        "carry_annualized_price",
     ]
     curve = panel.sort_values(["market", "date", "expiration", "instrument_id"]).copy()
 
     g = curve.groupby(["market", "date"], sort=False)
-    curve["curve_next_instrument_id"] = g["instrument_id"].shift(-1)
-    curve["curve_next_raw_symbol"] = g["raw_symbol"].shift(-1)
-    curve["curve_next_settlement_price"] = g["settlement_price"].shift(-1)
-    curve["curve_next_volume"] = g["volume"].shift(-1)
-    curve["curve_next_expiration"] = g["expiration"].shift(-1)
-    curve["curve_next_days_to_expiry"] = g["days_to_expiry"].shift(-1)
-    
-    curve = curve.rename(columns = {
-        "raw_symbol" : "held_raw_symbol",
-        "settlement_price" : "held_settlement_price",
-        "volume" : "held_volume",
-        "expiration" : "held_expiration",
-        "days_to_expiry" : "held_days_to_expiry",
-        })
+    curve["nearer_settlement_price"] = g["settlement_price"].shift(1)
+    curve["nearer_expiration"] = g["expiration"].shift(1)
+    curve["next_settlement_price"] = g["settlement_price"].shift(-1)
+    curve["next_expiration"] = g["expiration"].shift(-1)
 
-    schedule = roll_schedule[["date", "market", "held_instrument_id"]].copy()
+    schedule = roll_schedule[
+        ["date", "market", "selected_instrument_id"]
+    ].copy()
 
     carry_data = pd.merge(
-        curve,
         schedule,
-        left_on = ["date", "market", "instrument_id"],
-        right_on = ["date", "market", "held_instrument_id"],
-        how = "right"
+        curve,
+        left_on=["date", "market", "selected_instrument_id"],
+        right_on=["date", "market", "instrument_id"],
+        how="left",
     )
-    
+
+    selected_is_nearest = carry_data["nearer_expiration"].isna()
+    near_price = carry_data["nearer_settlement_price"].where(
+        ~selected_is_nearest,
+        carry_data["settlement_price"],
+    )
+    far_price = carry_data["settlement_price"].where(
+        ~selected_is_nearest,
+        carry_data["next_settlement_price"],
+    )
+    near_expiration = carry_data["nearer_expiration"].where(
+        ~selected_is_nearest,
+        carry_data["expiration"],
+    )
+    far_expiration = carry_data["expiration"].where(
+        ~selected_is_nearest,
+        carry_data["next_expiration"],
+    )
+
+    carry_data["carry_price_difference"] = near_price - far_price
     carry_data["carry_day_gap"] = (
-        carry_data["curve_next_expiration"] - carry_data["held_expiration"]
+        far_expiration - near_expiration
     ).dt.days
 
     valid = (
-        (carry_data["held_settlement_price"] > 0)
-        & (carry_data["curve_next_settlement_price"] > 0)
-        & (carry_data["carry_day_gap"] > 0)
+        carry_data["carry_price_difference"].notna()
+        & carry_data["carry_day_gap"].gt(0)
     )
-    
-    price_ratio = carry_data["held_settlement_price"] / carry_data["curve_next_settlement_price"]
 
-    carry_data["held_carry_annualized"] = (
-        np.log(price_ratio) * 365 / carry_data["carry_day_gap"]
+    carry_data["carry_annualized_price"] = (
+        carry_data["carry_price_difference"]
+        * 365
+        / carry_data["carry_day_gap"]
     ).where(valid)
 
     return carry_data[carry_cols]
-

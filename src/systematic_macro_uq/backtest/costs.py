@@ -26,9 +26,39 @@ def add_drift_aware_turnover(position_df):
     return position_df
 
 
+def add_roll_aware_turnover(position_df):
+    """Charge both roll legs when the held contract changes."""
+
+    position_df = position_df.sort_values(["market", "date"]).copy()
+    position_df = add_drift_aware_turnover(position_df)
+
+    previous_contract = (
+        position_df.groupby("market")["held_instrument_id"].shift(1)
+    )
+    position_df["roll_trade"] = (
+        position_df["held_instrument_id"].notna()
+        & previous_contract.notna()
+        & position_df["held_instrument_id"].ne(previous_contract)
+    )
+
+    position_df["ordinary_turnover"] = position_df["turnover"].where(
+        ~position_df["roll_trade"],
+        0.0,
+    )
+    position_df["roll_turnover"] = (
+        position_df["pre_trade_position"].abs()
+        + position_df["position"].abs()
+    ).where(position_df["roll_trade"], 0.0)
+    position_df["turnover"] = (
+        position_df["ordinary_turnover"]
+        + position_df["roll_turnover"]
+    )
+
+    return position_df
+
+
 def add_linear_costs(position_df, cost_bps):
     
     position_df = position_df.copy()
     position_df[f"cost_{cost_bps}bps"] = position_df["turnover"] * cost_bps /10000
     return position_df
-

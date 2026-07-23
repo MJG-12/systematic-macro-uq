@@ -2,47 +2,95 @@ import pandas as pd
 import numpy as np
 
 
-def construct_equal_weight_positions(df, signal_col):
+def estimate_instrument_diversification_multiplier(
+    df,
+    instrument_weights,
+):
+    """Estimate one fixed IDM from pre-holdout subsystem returns."""
 
-    df = df.sort_values(["date", "market"]).copy()
-    df["active"] = df[signal_col].fillna(0) != 0
-    df["active_count"] = (
-        df.groupby("date")["active"]
-        .transform("sum")
+    df = df.sort_values(["market", "date"]).copy()
+    by_market = df.groupby("market")
+    forecast = by_market["forecast_combined"].shift(1)
+    volatility = by_market["annualized_pct_vol"].shift(1)
+    df["subsystem_return"] = (
+        forecast
+        / volatility
+        * df["held_daily_return"]
     )
 
-    df["position"] = np.where(
-        df["active_count"] > 0,
-        np.sign(df[signal_col].fillna(0)) / df["active_count"],
-        0,
+    returns = df.pivot(
+        index="date",
+        columns="market",
+        values="subsystem_return",
     )
-    df["return_contribution"] = df["position"] * df["held_daily_return"].fillna(0)
-
-    return df[["date", "market", "position", "held_daily_return", "return_contribution"]]
-
-
-def construct_vol_scaled_positions(df, signal_col, vol_lookback=63):
-
-    df = df.sort_values(["date", "market"]).copy()
-
-    vol_col = f"vol_{vol_lookback}d"
-    df["raw_position"] = np.where((df[vol_col].notna()) & (df[vol_col] > 0),
-                                  df[signal_col].fillna(0) / df[vol_col],
-                                  0
+    weights = pd.Series(instrument_weights, dtype=float)
+    correlation = returns.corr().reindex(
+        index=weights.index,
+        columns=weights.index,
     )
 
-    df["total_position"] =(
-        df.groupby("date")["raw_position"]
-        .transform(lambda x: x.abs().sum())
-    )
-    df["position"] = np.where(df["total_position"] > 0,
-        df["raw_position"] / df["total_position"],
-        0
-    )
-    
-    df["return_contribution"] = df["position"].fillna(0) * df["held_daily_return"].fillna(0)
+    correlation_values = correlation.to_numpy(copy=True)
+    # Do not let unstable negative estimates create artificial diversification.
+    correlation_values = np.maximum(correlation_values, 0)
+    np.fill_diagonal(correlation_values, 1.0)
 
-    return df[["date", "market", "position", "held_daily_return", "return_contribution"]]
+    portfolio_variance = (
+        weights.to_numpy()
+        @ correlation_values
+        @ weights.to_numpy()
+    )
+    # Carver's fixed ceiling prevents an implausibly large IDM.
+    return min(1 / np.sqrt(portfolio_variance), 2.5)
+
+
+def construct_forecast_positions(
+    df,
+    instrument_weights,
+    instrument_diversification_multiplier,
+    volatility_target,
+    average_forecast,
+):
+    """Map the combined forecast into lagged, volatility-targeted positions."""
+
+    df = df.sort_values(["market", "date"]).copy()
+    by_market = df.groupby("market")
+
+    df["instrument_weight"] = df["market"].map(instrument_weights)
+    df["forecast_for_position"] = by_market["forecast_combined"].shift(1)
+    df["volatility_for_position"] = by_market["annualized_pct_vol"].shift(1)
+
+    valid = (
+        df["instrument_weight"].notna()
+        & df["forecast_for_position"].notna()
+        & df["volatility_for_position"].gt(0)
+    )
+    df["position"] = 0.0
+    df.loc[valid, "position"] = (
+        df.loc[valid, "instrument_weight"]
+        * instrument_diversification_multiplier
+        * volatility_target
+        / df.loc[valid, "volatility_for_position"]
+        * df.loc[valid, "forecast_for_position"]
+        / average_forecast
+    )
+
+    df["return_contribution"] = (
+        df["position"] * df["held_daily_return"].fillna(0)
+    )
+
+    return df[
+        [
+            "date",
+            "market",
+            "held_instrument_id",
+            "position",
+            "instrument_weight",
+            "forecast_for_position",
+            "volatility_for_position",
+            "held_daily_return",
+            "return_contribution",
+        ]
+    ]
 
 
 def aggregate_portfolio(position_df, cost_bps):

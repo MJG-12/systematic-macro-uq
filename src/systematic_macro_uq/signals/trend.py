@@ -1,44 +1,76 @@
-import numpy as np
-
-def add_return_index(df):
+def add_stitched_price(df):
     df = df.sort_values(["market", "date"]).copy()
-    df["return_index"] = df["held_daily_return"].fillna(0) + 1
-    df["return_index"] = (df.groupby("market")["return_index"]
-                          .transform(lambda x: x.cumprod()))
-    
+
+    previous_contract_price = (
+        df["held_settlement_price"] / (1 + df["held_daily_return"])
+    )
+    held_price_change = (
+        df["held_settlement_price"] - previous_contract_price
+    ).fillna(0)
+
+    initial_price = df.groupby("market")["selected_settlement_price"].transform(
+        "first"
+    )
+    df["stitched_price"] = (
+        initial_price
+        + held_price_change.groupby(df["market"]).cumsum()
+    )
+
     return df
 
 
-def add_trailing_return(df, lookback):
+def add_ewmac_forecast(
+    df,
+    fast_span,
+    slow_span,
+    scalar,
+    forecast_cap,
+):
     df = df.sort_values(["market", "date"]).copy()
-    df[f"trend_{lookback}d"] = ((df["return_index"] /
-                                df.groupby("market")["return_index"].transform(lambda x: x.shift(lookback)))
-                                - 1)
+    prices = df.groupby("market")["stitched_price"]
+
+    fast_ewma = prices.transform(
+        lambda x: x.ewm(
+            span=fast_span,
+            adjust=False,
+            min_periods=slow_span,
+        ).mean()
+    )
+    slow_ewma = prices.transform(
+        lambda x: x.ewm(
+            span=slow_span,
+            adjust=False,
+            min_periods=slow_span,
+        ).mean()
+    )
+
+    scaled_forecast = (
+        (fast_ewma - slow_ewma)
+        / df["daily_price_vol"]
+        * scalar
+    )
+    df[f"forecast_ewmac_{fast_span}_{slow_span}"] = scaled_forecast.clip(
+        -forecast_cap,
+        forecast_cap,
+    )
+
     return df
 
 
-def add_trend_signal(df, lookback):
-    df = df.sort_values(["market", "date"]).copy()
-    df[f"signal_trend_{lookback}d"] = np.sign(df[f"trend_{lookback}d"])
-    df[f"signal_trend_{lookback}d"] = df.groupby("market")[f"signal_trend_{lookback}d"].shift(1)
-    return df
+def create_ewmac_forecasts(
+    df,
+    ewmac_rules,
+    forecast_cap,
+):
+    df = add_stitched_price(df)
 
+    for fast_span, slow_span, scalar, _ in ewmac_rules:
+        df = add_ewmac_forecast(
+            df,
+            fast_span=fast_span,
+            slow_span=slow_span,
+            scalar=scalar,
+            forecast_cap=forecast_cap,
+        )
 
-def create_trend_signals(df, lookback_list=[63, 126, 252]):
-    
-    df = add_return_index(df)
-    for lookback in lookback_list:
-        df = add_trailing_return(df, lookback)
-        df = add_trend_signal(df, lookback)
-
-    df = add_trend_composite_signal(df, lookback_list)
-    return df
-
-
-def add_trend_composite_signal(df, lookback_list):
-
-    df = df.sort_values(["market", "date"]).copy()
-    trend_signals = [f"signal_trend_{lookback}d" for lookback in lookback_list]
-    df["signal_trend_composite"] = df[trend_signals].mean(axis=1)
-  
     return df
