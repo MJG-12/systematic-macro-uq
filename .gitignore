@@ -7,8 +7,7 @@ __pycache__/
 *.egg-info/
 
 data/raw/
-data/processed/*
-!data/processed/.gitkeep
+/data/processed/
 logs/
 references/
 /old/
