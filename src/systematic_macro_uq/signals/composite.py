@@ -20,3 +20,33 @@ def add_combined_forecast(
     ).clip(-forecast_cap, forecast_cap)
 
     return df
+
+
+def add_mapped_forecasts(
+    df,
+    average_forecast,
+    ferson_siegel_scale,
+    clipped_scale,
+):
+    """Add fixed, theoretically normalized nonlinear forecast mappings.
+
+    The constants preserve variance under a standard-normal input signal.
+    They are fixed independently of this dataset, so no sample normalization
+    or future information enters either mapping.
+    """
+    df = df.copy()
+
+    scaled = df["forecast_combined"] / average_forecast
+    df["forecast_ferson_siegel"] = (
+        average_forecast
+        * ferson_siegel_scale
+        * scaled
+        / (1 + scaled.pow(2))
+    )
+    df["forecast_clip10"] = (
+        average_forecast
+        * clipped_scale
+        * scaled.clip(-1, 1)
+    )
+
+    return df

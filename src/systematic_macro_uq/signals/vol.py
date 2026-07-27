@@ -5,15 +5,29 @@ def add_ewma_volatility(
     df,
     span,
     trading_days_per_year,
+    long_run_weight,
+    long_run_window_days,
 ):
+    """Estimate vol as Carver's blend of short-run EWMA and long-run average.
+
+    The long-run average is expanding until a full window is available,
+    since the price history starts too late for a ten-year window early on.
+    """
     df = df.sort_values(["market", "date"]).copy()
 
     squared_returns = df["held_daily_return"].pow(2)
     ewma_variance = squared_returns.groupby(df["market"]).transform(
         lambda x: x.ewm(span=span, adjust=False).mean()
     )
+    short_run_vol = np.sqrt(ewma_variance)
+    long_run_vol = short_run_vol.groupby(df["market"]).transform(
+        lambda x: x.rolling(long_run_window_days, min_periods=1).mean()
+    )
 
-    df["daily_pct_vol"] = np.sqrt(ewma_variance)
+    df["daily_pct_vol"] = (
+        long_run_weight * long_run_vol
+        + (1 - long_run_weight) * short_run_vol
+    )
     df["annualized_pct_vol"] = (
         df["daily_pct_vol"] * np.sqrt(trading_days_per_year)
     )

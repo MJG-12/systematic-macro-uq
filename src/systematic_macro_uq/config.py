@@ -5,7 +5,11 @@ from pathlib import Path
 @dataclass(frozen=True)
 class ForecastConfig:
     trading_days_per_year: int = 256
-    volatility_span: int = 36
+    # AFTS strategy three: EWMA span 32, blended 30/70 with a ten-year
+    # average of the estimate (expanding until a full window exists).
+    volatility_span: int = 32
+    volatility_long_run_weight: float = 0.30
+    volatility_long_run_window_days: int = 2560
 
     ewmac_rules: tuple[tuple[int, int, float, float], ...] = (
         (16, 64, 3.75, 0.21),
@@ -14,11 +18,16 @@ class ForecastConfig:
     )
 
     carry_scalar: float = 30.0
+    # Systematic Trading chapter 15 companion configuration: smooth the
+    # daily raw carry forecast with pandas ewm(com=90).
+    carry_smoothing_com: int = 90
     carry_weight: float = 0.50
     forecast_diversification_multiplier: float = 1.31
     forecast_cap: float = 20.0
-    carry_update_weekday: int = 4  # Friday
-    target_horizon: int = 20
+    target_horizon: int = 1
+    # Fixed standard-normal variance-preserving mapping constants.
+    ferson_siegel_scale: float = 2.534
+    clipped_scale: float = 1.392
 
     @property
     def target_column(self):
@@ -29,6 +38,7 @@ class ForecastConfig:
 class PortfolioConfig:
     volatility_target: float = 0.10
     average_forecast: float = 10.0
+    instrument_diversification_multiplier: float = 2.13605733015194
     instrument_weights: dict[str, float] = field(default_factory=lambda: {
         # Equal 25% asset-class allocations, then equal within each class.
         "ES": 0.125,
@@ -44,27 +54,46 @@ class PortfolioConfig:
         "ZC": 1 / 24,
         "ZS": 1 / 24,
     })
+    asset_classes: dict[str, str] = field(default_factory=lambda: {
+        "ES": "equities",
+        "NQ": "equities",
+        "ZN": "rates",
+        "ZB": "rates",
+        "6E": "fx",
+        "6J": "fx",
+        "CL": "commodities",
+        "NG": "commodities",
+        "GC": "commodities",
+        "HG": "commodities",
+        "ZC": "commodities",
+        "ZS": "commodities",
+    })
 
 
 @dataclass(frozen=True)
 class ConformalConfig:
-    initial_training_years: int = 1
-    target_coverage: float = 0.80
-    aci_calibration_years: int = 1
+    calibration_window: int = 256
     aci_learning_rate: float = 0.005
-    application_history_years: int = 1
-    application_minimum_days: int = 64
-    abstention_quantile: float = 0.90
+    development_coverages: tuple[float, ...] = (
+        0.95,
+        0.96,
+        0.97,
+        0.98,
+        0.99,
+    )
+    selected_coverage: float = 0.95
 
 
 @dataclass(frozen=True)
 class RunConfig:
-    RUN_ID: str = "full_run_extended"
+    RUN_ID: str = "dev_v1"
+    SOURCE_DATA_RUN_ID: str = "full_run_extended"
     PRICE_START: str = "2011-01-01"
     END: str = "2026-05-01"
     DEFINITION_START: str = "2010-06-06"
-    HOLDOUT_START = "2022-01-01"
-    REUSE_DATA: bool= True
+    DEVELOPMENT_START: str = "2014-01-06"
+    HOLDOUT_START: str = "2022-01-01"
+    REUSE_DATA: bool = True
     RAW_DATA_DIR: Path = Path("data/raw")
     PROCESSED_DATA_DIR: Path = Path("data/processed/")
     min_days_to_expiry_by_market: dict[str, int] = field(default_factory=lambda: {
@@ -89,11 +118,11 @@ class RunConfig:
     @property
     def markets(self):
         return list(self.min_days_to_expiry_by_market)
-    
+
     @property
     def raw_data_run_dir(self):
-        return self.RAW_DATA_DIR / self.RUN_ID
-    
+        return self.RAW_DATA_DIR / self.SOURCE_DATA_RUN_ID
+
     @property
     def processed_data_run_dir(self):
         return self.PROCESSED_DATA_DIR / self.RUN_ID
@@ -111,10 +140,6 @@ class RunConfig:
         return self.processed_data_run_dir / "futures_daily_forecasts.parquet"
 
     @property
-    def conformal_dataset_path(self):
-        return self.processed_data_run_dir / "conformal_dataset.parquet"
-
-    @property
     def conformal_backtest_dir(self):
         return self.backtest_dir / "conformal"
 
@@ -123,5 +148,9 @@ class RunConfig:
         return self.processed_data_run_dir / "backtests"
 
     @property
-    def backtest_summary_path(self):
-        return self.backtest_dir / "summary.csv"
+    def development_backtest_dir(self):
+        return self.backtest_dir / "development"
+
+    @property
+    def holdout_backtest_dir(self):
+        return self.backtest_dir / "holdout"
