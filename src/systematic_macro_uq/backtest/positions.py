@@ -6,7 +6,11 @@ def estimate_instrument_diversification_multiplier(
     df,
     instrument_weights,
 ):
-    """Estimate one fixed IDM from pre-holdout subsystem returns."""
+    """Estimate the fixed IDM from the initial, pre-comparison period.
+
+    The omitted target-volatility and average-forecast constants are common
+    across markets and therefore do not affect the correlation estimate.
+    """
 
     df = df.sort_values(["market", "date"]).copy()
     by_market = df.groupby("market")
@@ -24,10 +28,20 @@ def estimate_instrument_diversification_multiplier(
         values="subsystem_return",
     )
     weights = pd.Series(instrument_weights, dtype=float)
+    missing_markets = weights.index.difference(returns.columns)
+    if not missing_markets.empty:
+        raise ValueError(
+            f"Missing IDM returns for: {', '.join(missing_markets)}"
+        )
+    if not np.isclose(weights.sum(), 1.0):
+        raise ValueError("Instrument weights must sum to one.")
+
     correlation = returns.corr().reindex(
         index=weights.index,
         columns=weights.index,
     )
+    if correlation.isna().any().any():
+        raise ValueError("Complete IDM correlations are required.")
 
     correlation_values = correlation.to_numpy(copy=True)
     # Do not let unstable negative estimates create artificial diversification.
@@ -49,6 +63,7 @@ def construct_forecast_positions(
     instrument_diversification_multiplier,
     volatility_target,
     average_forecast,
+    forecast_column="forecast_combined",
 ):
     """Map the combined forecast into lagged, volatility-targeted positions."""
 
@@ -56,7 +71,7 @@ def construct_forecast_positions(
     by_market = df.groupby("market")
 
     df["instrument_weight"] = df["market"].map(instrument_weights)
-    df["forecast_for_position"] = by_market["forecast_combined"].shift(1)
+    df["forecast_for_position"] = by_market[forecast_column].shift(1)
     df["volatility_for_position"] = by_market["annualized_pct_vol"].shift(1)
 
     valid = (
