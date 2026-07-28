@@ -44,8 +44,8 @@ def test_companion_forecast_specification_is_locked():
     assert config.carry_scalar == 30.0
     assert config.carry_weight == 0.50
     assert config.forecast_diversification_multiplier == 1.31
-    assert config.ferson_siegel_scale == 2.534
-    assert config.clipped_scale == 1.392
+    assert config.ferson_siegel_scale == 2.421349
+    assert config.clipped_scale == 1.335584
     assert (
         sum(rule[3] for rule in config.ewmac_rules)
         + config.carry_weight
@@ -259,20 +259,20 @@ def test_mapped_forecasts_use_fixed_theoretical_normalization():
     result = add_mapped_forecasts(
         df,
         average_forecast=10.0,
-        ferson_siegel_scale=2.534,
-        clipped_scale=1.392,
+        ferson_siegel_scale=2.421349,
+        clipped_scale=1.335584,
     )
 
     for column in ["forecast_ferson_siegel", "forecast_clip10"]:
         assert np.sign(result[column]).eq(np.sign(df["forecast_combined"])).all()
 
     fs = result.set_index(df["forecast_combined"])["forecast_ferson_siegel"]
-    assert fs.loc[10.0] == pytest.approx(12.67)
-    assert fs.loc[20.0] == pytest.approx(10.136)
+    assert fs.loc[10.0] == pytest.approx(12.106745)
+    assert fs.loc[20.0] == pytest.approx(9.685396)
     assert fs.loc[20.0] < fs.loc[10.0]
 
     clip = result.set_index(df["forecast_combined"])["forecast_clip10"]
-    assert clip.loc[10.0] == pytest.approx(13.92)
+    assert clip.loc[10.0] == pytest.approx(13.35584)
     assert clip.loc[20.0] == pytest.approx(clip.loc[10.0])
 
 
@@ -300,8 +300,8 @@ def test_fixed_mappings_do_not_depend_on_other_rows_or_dates():
 
     kwargs = {
         "average_forecast": 10.0,
-        "ferson_siegel_scale": 2.534,
-        "clipped_scale": 1.392,
+        "ferson_siegel_scale": 2.421349,
+        "clipped_scale": 1.335584,
     }
     base_result = add_mapped_forecasts(base, **kwargs)
     extended_result = add_mapped_forecasts(extended, **kwargs)

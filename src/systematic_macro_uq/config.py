@@ -25,9 +25,9 @@ class ForecastConfig:
     forecast_diversification_multiplier: float = 1.31
     forecast_cap: float = 20.0
     target_horizon: int = 1
-    # Fixed standard-normal variance-preserving mapping constants.
-    ferson_siegel_scale: float = 2.534
-    clipped_scale: float = 1.392
+    # Fixed capped-standard-normal variance-preserving mapping constants.
+    ferson_siegel_scale: float = 2.421349
+    clipped_scale: float = 1.335584
 
     @property
     def target_column(self):
