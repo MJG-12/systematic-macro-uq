@@ -112,8 +112,6 @@ def evaluate_position_strategies(
             "return",
             "vol",
             "sharpe",
-            "central_95_risk",
-            "central_95_return_ratio",
             "max_drawdown",
             "hit_rate",
         ]

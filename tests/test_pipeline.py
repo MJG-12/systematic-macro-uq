@@ -4,10 +4,6 @@ import pytest
 
 from systematic_macro_uq.backtest.evaluation import select_evaluation_period
 from systematic_macro_uq.backtest.costs import add_roll_aware_turnover
-from systematic_macro_uq.backtest.metrics import (
-    central_quantile_return_ratio,
-    central_quantile_risk,
-)
 from systematic_macro_uq.backtest.positions import (
     estimate_instrument_diversification_multiplier,
 )
@@ -130,23 +126,6 @@ def test_central_rule_uses_two_sided_gaussian_reference_scale():
 
     assert result.loc[0, "conformal_annualized_risk"] == pytest.approx(0.20)
     assert result.loc[0, "position"] == pytest.approx(0.5)
-
-
-def test_central_quantile_performance_metric_uses_finite_sample_radius():
-    returns = pd.Series([-0.01, 0.0, 0.02])
-    risk = central_quantile_risk(
-        returns,
-        trading_days_per_year=256,
-        coverage=0.5,
-    )
-    expected_risk = 16 * 0.01 / 0.6744897501960817
-
-    assert risk == pytest.approx(expected_risk)
-    assert central_quantile_return_ratio(
-        returns,
-        trading_days_per_year=256,
-        coverage=0.5,
-    ) == pytest.approx((returns.mean() * 256) / expected_risk)
 
 
 def test_aci_error_updates_only_the_next_alpha():
