@@ -25,10 +25,10 @@ def add_combined_forecast(
 def add_mapped_forecasts(
     df,
     average_forecast,
-    ferson_siegel_scale,
+    inverse_quadratic_scale,
     clipped_scale,
 ):
-    """Add fixed, theoretically normalized nonlinear forecast mappings.
+    """Add fixed, variance-matched nonlinear forecast mappings.
 
     The constants preserve variance under a standard-normal input signal.
     They are fixed independently of this dataset, so no sample normalization
@@ -37,9 +37,9 @@ def add_mapped_forecasts(
     df = df.copy()
 
     scaled = df["forecast_combined"] / average_forecast
-    df["forecast_ferson_siegel"] = (
+    df["forecast_inverse_quadratic"] = (
         average_forecast
-        * ferson_siegel_scale
+        * inverse_quadratic_scale
         * scaled
         / (1 + scaled.pow(2))
     )

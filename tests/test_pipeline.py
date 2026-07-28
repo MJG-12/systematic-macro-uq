@@ -44,7 +44,7 @@ def test_companion_forecast_specification_is_locked():
     assert config.carry_scalar == 30.0
     assert config.carry_weight == 0.50
     assert config.forecast_diversification_multiplier == 1.31
-    assert config.ferson_siegel_scale == 2.421349
+    assert config.inverse_quadratic_scale == 2.421349
     assert config.clipped_scale == 1.335584
     assert (
         sum(rule[3] for rule in config.ewmac_rules)
@@ -246,7 +246,7 @@ def test_idm_floors_negative_correlations_at_zero():
     assert result == pytest.approx(np.sqrt(2))
 
 
-def test_mapped_forecasts_use_fixed_theoretical_normalization():
+def test_mapped_forecasts_use_fixed_variance_matching():
     dates = pd.date_range("2020-01-01", periods=8, tz="UTC")
     df = pd.DataFrame(
         {
@@ -259,17 +259,19 @@ def test_mapped_forecasts_use_fixed_theoretical_normalization():
     result = add_mapped_forecasts(
         df,
         average_forecast=10.0,
-        ferson_siegel_scale=2.421349,
+        inverse_quadratic_scale=2.421349,
         clipped_scale=1.335584,
     )
 
-    for column in ["forecast_ferson_siegel", "forecast_clip10"]:
+    for column in ["forecast_inverse_quadratic", "forecast_clip10"]:
         assert np.sign(result[column]).eq(np.sign(df["forecast_combined"])).all()
 
-    fs = result.set_index(df["forecast_combined"])["forecast_ferson_siegel"]
-    assert fs.loc[10.0] == pytest.approx(12.106745)
-    assert fs.loc[20.0] == pytest.approx(9.685396)
-    assert fs.loc[20.0] < fs.loc[10.0]
+    inverse_quadratic = result.set_index(
+        df["forecast_combined"]
+    )["forecast_inverse_quadratic"]
+    assert inverse_quadratic.loc[10.0] == pytest.approx(12.106745)
+    assert inverse_quadratic.loc[20.0] == pytest.approx(9.685396)
+    assert inverse_quadratic.loc[20.0] < inverse_quadratic.loc[10.0]
 
     clip = result.set_index(df["forecast_combined"])["forecast_clip10"]
     assert clip.loc[10.0] == pytest.approx(13.35584)
@@ -300,13 +302,13 @@ def test_fixed_mappings_do_not_depend_on_other_rows_or_dates():
 
     kwargs = {
         "average_forecast": 10.0,
-        "ferson_siegel_scale": 2.421349,
+        "inverse_quadratic_scale": 2.421349,
         "clipped_scale": 1.335584,
     }
     base_result = add_mapped_forecasts(base, **kwargs)
     extended_result = add_mapped_forecasts(extended, **kwargs)
 
-    columns = ["forecast_ferson_siegel", "forecast_clip10"]
+    columns = ["forecast_inverse_quadratic", "forecast_clip10"]
     pd.testing.assert_frame_equal(
         base_result[columns],
         extended_result.loc[:1, columns],

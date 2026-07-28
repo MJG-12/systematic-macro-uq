@@ -8,7 +8,7 @@ from systematic_macro_uq.backtest.positions import (
 
 DEFAULT_FORECAST_STRATEGIES = {
     "linear": "forecast_combined",
-    "ferson_siegel": "forecast_ferson_siegel",
+    "inverse_quadratic": "forecast_inverse_quadratic",
     "clip10": "forecast_clip10",
 }
 

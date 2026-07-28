@@ -26,7 +26,7 @@ class ForecastConfig:
     forecast_cap: float = 20.0
     target_horizon: int = 1
     # Fixed capped-standard-normal variance-preserving mapping constants.
-    ferson_siegel_scale: float = 2.421349
+    inverse_quadratic_scale: float = 2.421349
     clipped_scale: float = 1.335584
 
     @property

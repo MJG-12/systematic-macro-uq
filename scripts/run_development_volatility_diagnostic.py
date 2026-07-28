@@ -12,7 +12,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 CANONICAL_COST_BPS = 2
 DIAGNOSTIC_STRATEGIES = {
     "linear": "forecast_combined",
-    "ferson_siegel": "forecast_ferson_siegel",
+    "inverse_quadratic": "forecast_inverse_quadratic",
 }
 
 
@@ -71,12 +71,12 @@ def run_development_volatility_diagnostic(config):
         .rename(
             columns={
                 "linear": "linear_sharpe",
-                "ferson_siegel": "ferson_siegel_sharpe",
+                "inverse_quadratic": "inverse_quadratic_sharpe",
             }
         )
     )
-    comparison["ferson_siegel_minus_linear"] = (
-        comparison["ferson_siegel_sharpe"]
+    comparison["inverse_quadratic_minus_linear"] = (
+        comparison["inverse_quadratic_sharpe"]
         - comparison["linear_sharpe"]
     )
 

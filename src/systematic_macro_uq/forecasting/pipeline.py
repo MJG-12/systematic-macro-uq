@@ -38,6 +38,8 @@ def calculate_forecasts(df, config):
     return add_mapped_forecasts(
         df,
         average_forecast=config.portfolio.average_forecast,
-        ferson_siegel_scale=config.forecast.ferson_siegel_scale,
+        inverse_quadratic_scale=(
+            config.forecast.inverse_quadratic_scale
+        ),
         clipped_scale=config.forecast.clipped_scale,
     )
