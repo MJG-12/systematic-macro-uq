@@ -3,7 +3,7 @@
 Can conformal risk scaling or a fixed nonlinear forecast response improve the
 performance of a published Carver trend and carry futures baseline?
 
-We apply both alternatives at the final sizing stage only, leaving the underlying alpha forecasts and all other portfolio conventions unchanged. The Ferson–Siegel variant replaces the baseline’s linear response to forecast strength with a fixed nonlinear mapping. The ACI variant replaces volatility in the denominator of the sizing rule with the conformal interval half-width, while fixed conformal serves as the non-adaptive benchmark.
+We apply both alternatives at the final sizing stage only, leaving the underlying alpha forecasts and all other portfolio conventions unchanged. The Ferson–Siegel variant replaces the baseline’s linear response to forecast strength with a fixed nonlinear mapping. The Adaptive Conformal Inference variant replaces volatility in the denominator of the sizing rule with the conformal interval half-width. Fixed conformal serves as the corresponding non-adaptive benchmark.
 
 Both changes improved development performance, but neither improvement was
 corroborated in the holdout after 2021. The appropriate practical default
