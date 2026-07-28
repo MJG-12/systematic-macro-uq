@@ -1,14 +1,9 @@
 # Systematic Futures Sizing and Uncertainty
 
-Can a credible trend and carry futures system be improved by changing its
-position sizing?
+Can conformal risk scaling or a fixed nonlinear forecast response improve the
+performance of a published Carver trend and carry futures baseline?
 
-This project holds the underlying alpha forecasts fixed and tests two changes
-to final position sizing. The Ferson–Siegel variant replaces the linear
-response to forecast strength with a fixed nonlinear response. The conformal
-candidate uses ACI to scale final exposure based on the half-width of a rolling
-symmetric conformal prediction interval for the next day's return rather than
-on volatility. Fixed conformal serves as the control.
+We apply both alternatives at the final sizing stage only, leaving the underlying alpha forecasts and all other portfolio conventions unchanged. The Ferson–Siegel variant replaces the baseline’s linear response to forecast strength with a fixed nonlinear mapping. In the ACI variant, conformal interval half-width replaces volatility in the denominator of the sizing rule, while fixed conformal serves as the non adaptive benchmark.
 
 Both changes improved development performance, but neither improvement was
 corroborated in the holdout after 2021. The appropriate practical default
@@ -35,7 +30,7 @@ The canonical comparison charges 2 bps on each side of a trade:
 
 The Ferson–Siegel improvement appeared at every tested cost, in both
 halves of the development period and in 11 of 12 markets. Because its form and
-scaling were fixed independently of the strategy returns, this is notable
+scaling were fixed independently of our data, this is notable
 development evidence, but the 2022–26 result does not corroborate the
 improvement. A period of about 4.3 years is too short to establish whether the
 development result was persistent or specific to the sample.
@@ -46,8 +41,7 @@ error relative to fixed conformal, but that improvement did not translate into
 better subsequent portfolio performance. Better uncertainty calibration was
 not on its own a better trading risk measure.
 
-A directional variant evaluated only during development produced a potentially
-useful abstention result at 99% coverage, but it remains an untested hypothesis.
+A directional variant evaluated only during development produced a somewhat interesting abstention result at 99% coverage, but it remains an untested hypothesis.
 
 ## Experimental design
 
