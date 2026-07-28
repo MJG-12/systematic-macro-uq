@@ -82,14 +82,16 @@ Carver's forecast linearity tests motivate asking whether extreme trend and
 carry forecasts deserve proportionally larger positions. The main alternative
 uses a response based on Ferson–Siegel:
 
-\[
-F^{FS}=10\frac{2.421x}{1+x^2}, \qquad x=F/10.
-\]
+$$
+F^{\mathrm{FS}} = 10\frac{2.421x}{1+x^2},
+\qquad
+x = \frac{F}{10}.
+$$
 
 Under a capped standard normal reference for forecast strength, the fixed
 constants give the Ferson–Siegel and clipped forecasts the same variance as the
 capped linear forecast. They are not estimated from this dataset. The simpler
-control clips the forecast at \(\lvert F\rvert=10\).
+control clips the forecast at  $|F| = 10$.
 
 This is closely related to recent work on
 [nonlinear time series momentum](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5933974),
