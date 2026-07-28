@@ -47,7 +47,7 @@ A directional variant evaluated only during development produced a somewhat inte
 
 | Element | Fixed choice |
 |---|---|
-| Universe | ES, NQ, ZN, ZB, 6E, 6J, CL, NG, GC, HG, ZC and ZS |
+| Universe | 12 CME futures markets: ES, NQ, ZN, ZB, 6E, 6J, CL, NG, GC, HG, ZC and ZS |
 | Data | Daily futures settlements, volume and contract definitions from 2011 |
 | IDM estimation | 5 January 2012–3 January 2014 |
 | Development | 6 January 2014–31 December 2021 |
@@ -122,8 +122,7 @@ tests/           focused timing and portfolio safeguards
 ```
 
 The complete daily positions and portfolio outputs are generated under the
-ignored `data/processed/` directory. Licensed raw Databento data are not
-distributed.
+ignored `data/processed/` directory.
 
 ## Reproduction
 
