@@ -31,15 +31,17 @@ The canonical comparison charges 2 bps on each side of a trade:
 The Ferson–Siegel improvement appeared at every tested cost, in both
 halves of the development period and in 11 of 12 markets. Because its form and
 scaling were fixed independently of our data, this is notable
-development evidence, but the 2022–26 result does not corroborate the
+development evidence, but the 2022–26 holdout result does not corroborate the
 improvement. A period of about 4.3 years is too short to establish whether the
 development result was persistent or specific to the sample.
 
 Adaptive conformal inference (ACI) reached 94.89% coverage in development and
-95.01% after 2021 against a 95% target. It also reduced rolling local coverage
-error relative to fixed conformal, but that improvement did not translate into
-better subsequent portfolio performance. Better uncertainty calibration was
-not on its own a better trading risk measure.
+95.01% in holdout against a 95% target. It reduced rolling local coverage error
+relative to fixed conformal and improved development Sharpe. After 2021,
+however, its Sharpe was essentially unchanged from fixed conformal and remained
+below linear volatility sizing. The available evidence therefore does not
+confirm that adaptive calibration improves sizing, but is still too limited to
+reject ACI more generally.
 
 A directional variant evaluated only during development produced a somewhat interesting abstention result at 99% coverage, but it remains an untested hypothesis.
 
