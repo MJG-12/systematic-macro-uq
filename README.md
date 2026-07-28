@@ -6,9 +6,9 @@ position sizing?
 This project holds the underlying alpha forecasts fixed and tests two changes
 to final position sizing. The Ferson–Siegel variant replaces the linear
 response to forecast strength with a fixed nonlinear response. The conformal
-candidate uses ACI to scale final exposure using the half-width of the rolling
+candidate uses ACI to scale final exposure based on the half-width of a rolling
 symmetric conformal prediction interval for the next day's return rather than
-from volatility. Fixed conformal serves as the control.
+on volatility. Fixed conformal serves as the control.
 
 Both changes improved development performance, but neither improvement was
 corroborated in the holdout after 2021. The appropriate practical default
