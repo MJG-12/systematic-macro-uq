@@ -28,12 +28,14 @@ STRATEGY_COLOURS = {
 
 
 def _save_figure(fig, name):
+    """Writes and closes one report figure."""
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / name, bbox_inches="tight", dpi=200)
     plt.close(fig)
 
 
 def _write_combined_csv(sample_dirs, filename):
+    """Combines one result table across named samples."""
     frames = []
     for sample, directory in sample_dirs.items():
         frame = pd.read_csv(directory / filename)
@@ -50,6 +52,7 @@ def _load_net_market_attribution(
     asset_classes,
     trading_days_per_year,
 ):
+    """Computes net market attribution for each named sample."""
     frames = []
     for sample, directory in sample_dirs.items():
         positions = pd.read_parquet(directory / "positions.parquet")
@@ -81,6 +84,7 @@ def _load_net_market_attribution(
 
 
 def _plot_timeline():
+    """Plots the warmup, IDM, development, and holdout periods."""
     periods = [
         ("Warm-up", "2011-01-01", "2012-01-04", "#BAB0AC"),
         ("IDM estimation", "2012-01-05", "2014-01-03", "#F2CF5B"),
@@ -115,6 +119,7 @@ def _plot_timeline():
 
 
 def _plot_mappings(config):
+    """Plots the linear, clipped, and inverse quadratic mappings."""
     raw_forecast = np.linspace(-25, 25, 501)
     forecast = np.clip(
         raw_forecast,
@@ -187,6 +192,7 @@ def _plot_mappings(config):
 
 
 def _plot_bins(forecast_bins):
+    """Plots conditional return bins for both evaluation samples."""
     centres = np.array([2.5, 7.5, 12.5, 17.5])
     fig, ax = plt.subplots(figsize=(6.8, 4.0))
     for sample, colour in (
@@ -217,6 +223,7 @@ def _plot_bins(forecast_bins):
 
 
 def _plot_cumulative_returns(portfolio_returns):
+    """Plots cumulative returns for the forecast sizing strategies."""
     fig, axes = plt.subplots(1, 2, figsize=(9.0, 3.6), sharey=True)
     for ax, sample in zip(axes, ("development", "holdout")):
         sample_df = portfolio_returns.loc[
@@ -245,6 +252,7 @@ def _plot_cumulative_returns(portfolio_returns):
 
 
 def _plot_market_attribution(market_attribution, config):
+    """Plots inverse quadratic return differences by market."""
     differences = (
         market_attribution.pivot_table(
             index=["sample", "market"],
@@ -291,6 +299,7 @@ def _plot_market_attribution(market_attribution, config):
 
 
 def build_report_assets(config):
+    """Builds the compact result tables and figures used by the report."""
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     sample_dirs = {

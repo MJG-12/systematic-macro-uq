@@ -8,14 +8,14 @@ from functools import cache
 
 @cache
 def get_databento_client():
+    """Returns a cached Databento historical data client."""
     load_dotenv()
     api_key = os.environ["DATABENTO_API_KEY"]
     return db.Historical(api_key)
 
 
 def fetch_futures_data(schema, market, start_date, end_date,  symbols=None, stype_in="parent"):
-    """Returns Databento raw futures data. 
-    """
+    """Downloads raw Databento futures records for one market."""
     client = get_databento_client()
 
     if symbols is None:
@@ -35,9 +35,7 @@ def fetch_futures_data(schema, market, start_date, end_date,  symbols=None, styp
 
 
 def build_futures_metadata(raw_df):
-    """Cleans Databento raw futures metadata by removing unused columns
-    contracts.
-    """
+    """Cleans Databento definitions for outright futures contracts."""
     meta_cols = [
         "market",
         "ts_event",
@@ -58,6 +56,7 @@ def build_futures_metadata(raw_df):
 
 
 def build_daily_statistic_data(raw_df, statistic):
+    """Extracts the final daily contract price or volume record."""
     
     daily_statistics = {
         "settlement_price": (3, "price"),
@@ -105,6 +104,7 @@ def build_daily_statistic_data(raw_df, statistic):
 
 
 def build_contract_panel(universe_df, prices_df, volumes_df):
+    """Combines daily statistics with the active contract definitions."""
 
     panel_cols = [
         "date",
@@ -150,6 +150,7 @@ def build_contract_panel(universe_df, prices_df, volumes_df):
 
 
 def build_contract_returns_data(contract_panel):
+    """Computes daily returns separately for each futures contract."""
 
     df = contract_panel.sort_values(["instrument_id", "date"]).copy()
     df["contract_return"] = (
@@ -169,6 +170,11 @@ def build_contract_returns_data(contract_panel):
 
 
 def build_roll_schedule(contract_panel, min_days_to_expiry):
+    """Selects one tradable contract and records the next day holding.
+
+    Selection respects the expiry buffer, confirms liquidity rolls over two
+    days, and prevents the schedule from returning to an earlier expiry.
+    """
 
     schedule_cols = [
         "date",
@@ -245,6 +251,7 @@ def build_roll_schedule(contract_panel, min_days_to_expiry):
 
 
 def build_carry_data(panel, roll_schedule):
+    """Computes annualized carry from adjacent contracts on the curve."""
 
     carry_cols = [
         "date",

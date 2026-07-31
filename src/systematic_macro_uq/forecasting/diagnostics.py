@@ -8,7 +8,7 @@ FORECAST_BIN_EDGES = [0, 5, 10, 15, 20]
 
 
 def compute_forecast_bins(df, config):
-    """Tabulate signed subsequent returns in fixed forecast-strength bins."""
+    """Tabulates signed subsequent returns in fixed forecast strength bins."""
     df = add_forward_return_target(
         df,
         horizon_days=config.forecast.target_horizon,

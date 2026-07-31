@@ -11,6 +11,7 @@ HOLDOUT_FROZEN = True
 
 
 def run_holdout_backtest(config, *, frozen):
+    """Evaluates the fixed forecast mappings on the frozen holdout."""
     if not frozen:
         raise RuntimeError(
             "Holdout is locked. Set HOLDOUT_FROZEN=True only after the "

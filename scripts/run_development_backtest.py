@@ -8,6 +8,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 
 
 def run_development_backtest(config):
+    """Evaluates the fixed forecast mappings on the development sample."""
     holdout_start = pd.Timestamp(config.HOLDOUT_START, tz="UTC")
     daily_df = pd.read_parquet(
         config.futures_daily_path,

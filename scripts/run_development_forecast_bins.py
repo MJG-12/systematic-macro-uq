@@ -8,7 +8,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 
 
 def run_development_forecast_bins(config):
-    """Tabulate development returns by forecast strength."""
+    """Tabulates development returns by forecast strength."""
     holdout_start = pd.Timestamp(config.HOLDOUT_START, tz="UTC")
     daily_df = pd.read_parquet(
         config.futures_daily_path,

@@ -8,6 +8,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 
 
 def calculate_idm(config):
+    """Estimates the IDM using observations before development begins."""
     estimation_end = pd.Timestamp(config.DEVELOPMENT_START, tz="UTC")
     daily_df = pd.read_parquet(
         config.futures_daily_path,

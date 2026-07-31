@@ -13,6 +13,7 @@ from systematic_macro_uq.data.futures import (
 
 
 def load_or_fetch_universe(config, market):
+    """Loads cached definitions or downloads them for one market."""
     input_path = config.raw_data_run_dir / f"definition_{market}.parquet"
     if config.REUSE_DATA and input_path.exists():
         return pd.read_parquet(input_path)
@@ -29,6 +30,7 @@ def load_or_fetch_universe(config, market):
 
 
 def load_or_fetch_stats(config, market, universe_df):
+    """Loads cached statistics or downloads them for one market."""
     input_path = config.raw_data_run_dir / f"stats_{market}.parquet"
     if config.REUSE_DATA and input_path.exists():
         return pd.read_parquet(input_path)
@@ -58,6 +60,7 @@ def load_or_fetch_stats(config, market, universe_df):
 
 
 def fetch_and_build_market_dataset(config, market):
+    """Builds and stores the daily dataset for one futures market."""
     output_path = config.by_market_dir / f"futures_dataset_{market}.parquet"
     if config.REUSE_DATA and output_path.exists():
         return pd.read_parquet(output_path)
@@ -100,6 +103,7 @@ def fetch_and_build_market_dataset(config, market):
 
 
 def build_futures_dataset(config):
+    """Builds and stores the combined daily futures dataset."""
     output_path = config.futures_daily_path
     if config.REUSE_DATA and output_path.exists():
         return pd.read_parquet(output_path)

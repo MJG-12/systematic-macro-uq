@@ -13,6 +13,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 
 
 def run_development_conformal_sizing(config):
+    """Evaluates conformal sizing across development coverage levels."""
     holdout_start = pd.Timestamp(config.HOLDOUT_START, tz="UTC")
     evaluation_start = pd.Timestamp(config.DEVELOPMENT_START, tz="UTC")
     daily = pd.read_parquet(

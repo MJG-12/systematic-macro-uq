@@ -4,6 +4,8 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class ForecastConfig:
+    """Stores the fixed forecast and volatility specification."""
+
     trading_days_per_year: int = 256
     # AFTS strategy three: EWMA span 32, blended 30/70 with a ten-year
     # average of the estimate (expanding until a full window exists).
@@ -32,11 +34,14 @@ class ForecastConfig:
 
     @property
     def target_column(self):
+        """Returns the configured forward return target column."""
         return f"target_return_{self.target_horizon}d_vol_scaled"
 
 
 @dataclass(frozen=True)
 class PortfolioConfig:
+    """Stores the fixed portfolio construction choices."""
+
     volatility_target: float = 0.10
     average_forecast: float = 10.0
     instrument_diversification_multiplier: float = 2.13605733015194
@@ -73,6 +78,8 @@ class PortfolioConfig:
 
 @dataclass(frozen=True)
 class ConformalConfig:
+    """Stores the conformal calibration and coverage choices."""
+
     calibration_window: int = 256
     aci_learning_rate: float = 0.005
     development_coverages: tuple[float, ...] = (
@@ -87,6 +94,8 @@ class ConformalConfig:
 
 @dataclass(frozen=True)
 class RunConfig:
+    """Stores data, sample, output, and experiment settings."""
+
     RUN_ID: str = "dev_v1"
     SOURCE_DATA_RUN_ID: str = "full_run_extended"
     PRICE_START: str = "2011-01-01"
@@ -118,40 +127,50 @@ class RunConfig:
 
     @property
     def markets(self):
+        """Returns the configured futures markets."""
         return list(self.min_days_to_expiry_by_market)
 
     @property
     def raw_data_run_dir(self):
+        """Returns the raw data directory for the source run."""
         return self.RAW_DATA_DIR / self.SOURCE_DATA_RUN_ID
 
     @property
     def processed_data_run_dir(self):
+        """Returns the processed data directory for this run."""
         return self.PROCESSED_DATA_DIR / self.RUN_ID
 
     @property
     def by_market_dir(self):
+        """Returns the directory for processed market datasets."""
         return self.processed_data_run_dir / "by_market"
 
     @property
     def futures_daily_path(self):
+        """Returns the path to the combined daily futures dataset."""
         return self.processed_data_run_dir / "futures_daily.parquet"
 
     @property
     def futures_forecasts_path(self):
+        """Returns the path to the daily forecast dataset."""
         return self.processed_data_run_dir / "futures_daily_forecasts.parquet"
 
     @property
     def conformal_backtest_dir(self):
+        """Returns the directory for conformal backtests."""
         return self.backtest_dir / "conformal"
 
     @property
     def backtest_dir(self):
+        """Returns the directory for all backtest outputs."""
         return self.processed_data_run_dir / "backtests"
 
     @property
     def development_backtest_dir(self):
+        """Returns the directory for development backtests."""
         return self.backtest_dir / "development"
 
     @property
     def holdout_backtest_dir(self):
+        """Returns the directory for holdout backtests."""
         return self.backtest_dir / "holdout"

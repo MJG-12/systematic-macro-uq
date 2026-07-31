@@ -4,7 +4,7 @@ import numpy as np
 
 
 def standard_normal_radius(target_coverage):
-    """Reference quantile that expresses a central radius in sigma units."""
+    """Returns the standard normal radius for a central coverage level."""
     quantile = NormalDist().inv_cdf((1 + target_coverage) / 2)
     if quantile <= 0:
         raise ValueError("Target coverage must be positive.")
@@ -20,7 +20,7 @@ def construct_conformal_positions(
     trading_days_per_year,
     target_coverage,
 ):
-    """Replace forecast volatility with a signal-free conformal risk scale."""
+    """Replaces forecast volatility with a conformal return scale."""
     positions = baseline_positions.copy()
     reference_quantile = standard_normal_radius(
         target_coverage

@@ -4,7 +4,7 @@ import numpy as np
 
 
 def _conformal_radius(scores, miscoverage):
-    """Finite-sample quantile for a conformal radius."""
+    """Returns the finite sample quantile for a conformal radius."""
     rank = math.ceil((len(scores) + 1) * (1 - miscoverage))
     if rank > len(scores):
         return np.inf
@@ -20,7 +20,7 @@ def add_per_market_conformal_radii(
     learning_rate,
     prefix,
 ):
-    """Calibrate signal-free central sets for next-day raw returns.
+    """Calibrates symmetric conformal intervals for next day returns.
 
     Each row's radius is formed from earlier absolute returns. The return on
     that row is observed only after the bound has been recorded and therefore

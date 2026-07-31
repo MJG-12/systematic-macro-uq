@@ -18,10 +18,12 @@ CONFORMAL_METHODS = ("fixed", "aci")
 
 
 def coverage_label(coverage):
+    """Formats a coverage level for use in strategy names."""
     return f"{100 * coverage:g}".replace(".", "p")
 
 
 def validate_coverages(coverages):
+    """Validates and deduplicates requested coverage levels."""
     values = tuple(dict.fromkeys(float(value) for value in coverages))
     if not values or any(value <= 0.5 or value >= 1 for value in values):
         raise ValueError("Coverages must be unique values between 0.5 and 1.")
@@ -29,6 +31,7 @@ def validate_coverages(coverages):
 
 
 def add_conformal_radii(baseline_positions, coverage, config):
+    """Adds fixed conformal and ACI radii at one coverage level."""
     result = add_per_market_conformal_radii(
         baseline_positions,
         target_coverage=coverage,
@@ -52,7 +55,7 @@ def build_conformal_strategies(
     evaluation_start,
     evaluation_end,
 ):
-    """Construct baseline, fixed-conformal and ACI position panels."""
+    """Constructs baseline, fixed conformal, and ACI position panels."""
     coverages = validate_coverages(coverages)
     baseline = construct_forecast_positions(
         forecasts,

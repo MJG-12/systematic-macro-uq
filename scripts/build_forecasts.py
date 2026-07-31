@@ -5,6 +5,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 
 
 def build_forecasts(config):
+    """Builds and stores forecasts for the combined futures dataset."""
     df = pd.read_parquet(config.futures_daily_path)
     df = calculate_forecasts(df, config)
     df.to_parquet(config.futures_forecasts_path, index=False)

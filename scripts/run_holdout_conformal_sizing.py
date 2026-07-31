@@ -16,6 +16,7 @@ HOLDOUT_FROZEN = True
 
 
 def run_holdout_conformal_sizing(config, *, frozen):
+    """Evaluates the selected conformal sizing rules on the frozen holdout."""
     if not frozen:
         raise RuntimeError(
             "Conformal holdout is locked. Set HOLDOUT_FROZEN=True only "

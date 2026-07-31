@@ -2,6 +2,7 @@ import pandas as pd
 
 
 def compute_backtest_diagnostics(positions_df, portfolio_results_df):
+    """Summarizes turnover, costs, returns, and portfolio exposure."""
 
     positions_df = positions_df.copy()
     positions_df["abs_position"] = positions_df["position"].abs()
@@ -79,12 +80,13 @@ def compute_return_attribution(
     asset_classes,
     trading_days_per_year,
 ):
-    """Annualized gross return contribution by market and by year."""
+    """Computes annualized gross return attribution by market and year."""
     df = positions_df.copy()
     df["asset_class"] = df["market"].map(asset_classes)
     df["year"] = df["date"].dt.year
 
     def _annualized(group_columns):
+        """Annualizes return contributions for the requested groups."""
         grouped = df.groupby(group_columns)
         n_dates = grouped["date"].nunique()
         contribution = grouped["return_contribution"].sum()
@@ -100,7 +102,7 @@ def compute_return_attribution(
 
 
 def compute_asset_class_exposures(positions_df, asset_classes):
-    """Summarise signed and gross exposure by strategy and asset class."""
+    """Summarizes signed and gross exposure by strategy and asset class."""
     positions_df = positions_df.copy()
     positions_df["asset_class"] = positions_df["market"].map(asset_classes)
     if positions_df["asset_class"].isna().any():

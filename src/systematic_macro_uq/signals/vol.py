@@ -8,10 +8,10 @@ def add_ewma_volatility(
     long_run_weight,
     long_run_window_days,
 ):
-    """Estimate vol as Carver's blend of short-run EWMA and long-run average.
+    """Estimates volatility using Carver's short and long run blend.
 
-    The long-run average is expanding until a full window is available,
-    since the price history starts too late for a ten-year window early on.
+    The long run average expands until a full window is available because the
+    price history starts too late for a ten year window early in the sample.
     """
     df = df.sort_values(["market", "date"]).copy()
 

@@ -8,6 +8,7 @@ from systematic_macro_uq.signals.vol import add_ewma_volatility
 
 
 def calculate_forecasts(df, config):
+    """Builds volatility, component forecasts, and forecast mappings."""
     df = add_ewma_volatility(
         df,
         span=config.forecast.volatility_span,

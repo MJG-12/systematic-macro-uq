@@ -6,9 +6,9 @@ def estimate_instrument_diversification_multiplier(
     df,
     instrument_weights,
 ):
-    """Estimate the fixed IDM from the initial, pre-comparison period.
+    """Estimates the fixed IDM from the initial estimation period.
 
-    The omitted target-volatility and average-forecast constants are common
+    The omitted target volatility and average forecast constants are common
     across markets and therefore do not affect the correlation estimate.
     """
 
@@ -65,7 +65,7 @@ def construct_forecast_positions(
     average_forecast,
     forecast_column="forecast_combined",
 ):
-    """Map the combined forecast into lagged, volatility-targeted positions."""
+    """Maps a forecast into lagged, volatility targeted positions."""
 
     df = df.sort_values(["market", "date"]).copy()
     by_market = df.groupby("market")
@@ -109,6 +109,7 @@ def construct_forecast_positions(
 
 
 def aggregate_portfolio(position_df, cost_bps):
+    """Aggregates market contributions and costs into a portfolio path."""
 
     cost_col = f"cost_{cost_bps}bps"
     portfolio = position_df.groupby("date")[["return_contribution", cost_col]].sum()

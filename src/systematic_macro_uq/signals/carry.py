@@ -4,7 +4,7 @@ def add_carry_forecast(
     forecast_cap,
     smoothing_com,
 ):
-    """Add the daily smoothed-carry forecast from the companion system."""
+    """Adds the daily smoothed carry forecast from the companion system."""
     df = df.sort_values(["market", "date"]).copy()
 
     raw_carry = (

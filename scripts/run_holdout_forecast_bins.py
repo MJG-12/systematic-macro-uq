@@ -8,7 +8,7 @@ from systematic_macro_uq.forecasting.pipeline import calculate_forecasts
 
 
 def run_holdout_forecast_bins(config):
-    """Apply the fixed development bin diagnostic to holdout observations."""
+    """Applies the fixed forecast bins to holdout observations."""
     daily_df = pd.read_parquet(config.futures_daily_path)
     df = calculate_forecasts(daily_df, config)
     holdout_start = pd.Timestamp(config.HOLDOUT_START, tz="UTC")

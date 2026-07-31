@@ -17,7 +17,7 @@ DIAGNOSTIC_STRATEGIES = {
 
 
 def run_development_volatility_diagnostic(config):
-    """Compare short-only and blended volatility on development data."""
+    """Compares short and blended volatility on development data."""
     holdout_start = pd.Timestamp(config.HOLDOUT_START, tz="UTC")
     daily_df = pd.read_parquet(
         config.futures_daily_path,

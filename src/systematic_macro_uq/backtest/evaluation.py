@@ -18,6 +18,8 @@ from systematic_macro_uq.backtest.positions import aggregate_portfolio
 
 @dataclass
 class BacktestEvaluation:
+    """Collects the tables produced by one strategy evaluation."""
+
     summary: pd.DataFrame
     diagnostics: pd.DataFrame
     asset_class_exposures: pd.DataFrame
@@ -28,7 +30,7 @@ class BacktestEvaluation:
 
 
 def select_evaluation_period(df, start, end=None):
-    """Select an inclusive start and optional exclusive end date."""
+    """Selects an inclusive start and optional exclusive end date."""
     mask = df["date"].ge(start)
     if end is not None:
         mask &= df["date"].lt(end)
@@ -36,6 +38,7 @@ def select_evaluation_period(df, start, end=None):
 
 
 def _write_evaluation(result, output_dir):
+    """Writes one complete evaluation to its output directory."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     result.summary.to_csv(output_dir / "summary.csv", index=False)
@@ -69,7 +72,7 @@ def evaluate_position_strategies(
     evaluation_end,
     output_dir=None,
 ):
-    """Evaluate named, preconstructed position panels over one sample."""
+    """Evaluates named position panels over one sample and cost grid."""
     position_frames = []
     portfolio_frames = []
     metric_rows = []

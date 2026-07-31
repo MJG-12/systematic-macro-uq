@@ -7,6 +7,7 @@ def add_forward_return_target(
     trading_days_per_year,
     target_column,
 ):
+    """Adds a forward return scaled by current horizon volatility."""
     df = df.sort_values(["market", "date"]).copy()
 
     df["target_end_date"] = (

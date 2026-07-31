@@ -13,7 +13,7 @@ def compute_application_diagnostics(
     trading_days_per_year,
     local_coverage_window,
 ):
-    """Summarize calibration and sizing behaviour over one sample."""
+    """Summarizes calibration and sizing behavior over one sample."""
     sample = bounds.loc[
         bounds["date"].ge(evaluation_start)
         & bounds["date"].lt(evaluation_end)

@@ -22,7 +22,7 @@ def evaluate_forecast_strategies(
     strategy_forecast_columns=None,
     instrument_diversification_multiplier=None,
 ):
-    """Construct and evaluate fixed forecast-to-position mappings."""
+    """Constructs and evaluates fixed forecast mappings."""
     if strategy_forecast_columns is None:
         strategy_forecast_columns = DEFAULT_FORECAST_STRATEGIES
     if instrument_diversification_multiplier is None:

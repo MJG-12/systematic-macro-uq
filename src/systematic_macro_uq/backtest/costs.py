@@ -1,6 +1,10 @@
 
 def add_drift_aware_turnover(position_df):
+    """Computes turnover after allowing existing positions to drift.
 
+    Each previous position is updated for its market return relative to the
+    portfolio return before it is compared with the next target position.
+    """
     position_df = position_df.copy()
     position_df["gross_portfolio_return"] = (
         position_df.groupby("date")["return_contribution"]
@@ -27,7 +31,7 @@ def add_drift_aware_turnover(position_df):
 
 
 def add_roll_aware_turnover(position_df):
-    """Charge both roll legs when the held contract changes."""
+    """Charges both roll legs when the held contract changes."""
 
     position_df = position_df.sort_values(["market", "date"]).copy()
     position_df = add_drift_aware_turnover(position_df)
@@ -58,6 +62,7 @@ def add_roll_aware_turnover(position_df):
 
 
 def add_linear_costs(position_df, cost_bps):
+    """Applies one way costs to total turnover."""
     
     position_df = position_df.copy()
     position_df[f"cost_{cost_bps}bps"] = position_df["turnover"] * cost_bps /10000

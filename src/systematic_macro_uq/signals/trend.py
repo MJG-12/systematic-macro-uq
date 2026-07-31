@@ -1,4 +1,9 @@
 def add_stitched_price(df):
+    """Builds a continuous price from held contract point changes.
+
+    Adding point changes instead of joining contract price levels prevents
+    roll gaps from creating artificial trend signals.
+    """
     df = df.sort_values(["market", "date"]).copy()
 
     previous_contract_price = (
@@ -26,6 +31,7 @@ def add_ewmac_forecast(
     scalar,
     forecast_cap,
 ):
+    """Adds one volatility scaled and capped EWMAC forecast."""
     df = df.sort_values(["market", "date"]).copy()
     prices = df.groupby("market")["stitched_price"]
 
@@ -62,6 +68,7 @@ def create_ewmac_forecasts(
     ewmac_rules,
     forecast_cap,
 ):
+    """Builds the stitched price and all configured EWMAC forecasts."""
     df = add_stitched_price(df)
 
     for fast_span, slow_span, scalar, _ in ewmac_rules:

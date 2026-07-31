@@ -5,6 +5,7 @@ def add_combined_forecast(
     forecast_diversification_multiplier,
     forecast_cap,
 ):
+    """Combines fixed weight component forecasts and applies the FDM and cap."""
     df = df.copy()
 
     combined_forecast = df["forecast_carry"] * carry_weight
@@ -29,12 +30,7 @@ def add_mapped_forecasts(
     inverse_quadratic_reference_variance,
     clipped_scale,
 ):
-    """Add fixed, variance-matched nonlinear forecast mappings.
-
-    The constants preserve variance under the capped Gaussian Carver
-    reference. They are fixed independently of this dataset, so no sample
-    normalization or future information enters either mapping.
-    """
+    """Adds the fixed inverse quadratic and clipped forecast mappings."""
     df = df.copy()
 
     scaled = df["forecast_combined"] / average_forecast
