@@ -44,8 +44,9 @@ def test_companion_forecast_specification_is_locked():
     assert config.carry_scalar == 30.0
     assert config.carry_weight == 0.50
     assert config.forecast_diversification_multiplier == 1.31
-    assert config.inverse_quadratic_scale == 2.421349
-    assert config.clipped_scale == 1.335584
+    assert config.inverse_quadratic_reference_variance == 1.279475
+    assert config.inverse_quadratic_scale == 3.170506
+    assert config.clipped_scale == 1.341270
     assert (
         sum(rule[3] for rule in config.ewmac_rules)
         + config.carry_weight
@@ -247,35 +248,51 @@ def test_idm_floors_negative_correlations_at_zero():
 
 
 def test_mapped_forecasts_use_fixed_variance_matching():
-    dates = pd.date_range("2020-01-01", periods=8, tz="UTC")
+    turning_point = 10 * np.sqrt(1.279475)
+    dates = pd.date_range("2020-01-01", periods=9, tz="UTC")
     df = pd.DataFrame(
         {
             "market": "ES",
             "date": dates,
-            "forecast_combined": [-20.0, -10.0, -2.0, 0.0, 2.0, 5.0, 10.0, 20.0],
+            "forecast_combined": [
+                -20.0,
+                -10.0,
+                -2.0,
+                0.0,
+                2.0,
+                5.0,
+                10.0,
+                turning_point,
+                20.0,
+            ],
         }
     )
 
     result = add_mapped_forecasts(
         df,
         average_forecast=10.0,
-        inverse_quadratic_scale=2.421349,
-        clipped_scale=1.335584,
+        inverse_quadratic_scale=3.170506,
+        inverse_quadratic_reference_variance=1.279475,
+        clipped_scale=1.341270,
     )
 
-    for column in ["forecast_inverse_quadratic", "forecast_clip10"]:
+    for column in ["forecast_inverse_quadratic", "forecast_clipped"]:
         assert np.sign(result[column]).eq(np.sign(df["forecast_combined"])).all()
 
     inverse_quadratic = result.set_index(
         df["forecast_combined"]
     )["forecast_inverse_quadratic"]
-    assert inverse_quadratic.loc[10.0] == pytest.approx(12.106745)
-    assert inverse_quadratic.loc[20.0] == pytest.approx(9.685396)
+    assert inverse_quadratic.loc[10.0] == pytest.approx(13.9089307845)
+    assert inverse_quadratic.loc[20.0] == pytest.approx(12.0106866687)
     assert inverse_quadratic.loc[20.0] < inverse_quadratic.loc[10.0]
 
-    clip = result.set_index(df["forecast_combined"])["forecast_clip10"]
-    assert clip.loc[10.0] == pytest.approx(13.35584)
-    assert clip.loc[20.0] == pytest.approx(clip.loc[10.0])
+    clipped = result.set_index(df["forecast_combined"])[
+        "forecast_clipped"
+    ]
+    assert clipped.loc[10.0] == pytest.approx(13.41270)
+    assert clipped.loc[20.0] == pytest.approx(
+        clipped.loc[turning_point]
+    )
 
 
 def test_fixed_mappings_do_not_depend_on_other_rows_or_dates():
@@ -302,13 +319,14 @@ def test_fixed_mappings_do_not_depend_on_other_rows_or_dates():
 
     kwargs = {
         "average_forecast": 10.0,
-        "inverse_quadratic_scale": 2.421349,
-        "clipped_scale": 1.335584,
+        "inverse_quadratic_scale": 3.170506,
+        "inverse_quadratic_reference_variance": 1.279475,
+        "clipped_scale": 1.341270,
     }
     base_result = add_mapped_forecasts(base, **kwargs)
     extended_result = add_mapped_forecasts(extended, **kwargs)
 
-    columns = ["forecast_inverse_quadratic", "forecast_clip10"]
+    columns = ["forecast_inverse_quadratic", "forecast_clipped"]
     pd.testing.assert_frame_equal(
         base_result[columns],
         extended_result.loc[:1, columns],

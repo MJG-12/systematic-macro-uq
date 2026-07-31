@@ -25,9 +25,10 @@ class ForecastConfig:
     forecast_diversification_multiplier: float = 1.31
     forecast_cap: float = 20.0
     target_horizon: int = 1
-    # Fixed capped-standard-normal variance-preserving mapping constants.
-    inverse_quadratic_scale: float = 2.421349
-    clipped_scale: float = 1.335584
+    # Fixed mapping constants under the capped Gaussian Carver reference.
+    inverse_quadratic_reference_variance: float = 1.279475
+    inverse_quadratic_scale: float = 3.170506
+    clipped_scale: float = 1.341270
 
     @property
     def target_column(self):

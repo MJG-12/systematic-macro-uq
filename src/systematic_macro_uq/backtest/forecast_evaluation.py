@@ -9,7 +9,7 @@ from systematic_macro_uq.backtest.positions import (
 DEFAULT_FORECAST_STRATEGIES = {
     "linear": "forecast_combined",
     "inverse_quadratic": "forecast_inverse_quadratic",
-    "clip10": "forecast_clip10",
+    "clipped": "forecast_clipped",
 }
 
 

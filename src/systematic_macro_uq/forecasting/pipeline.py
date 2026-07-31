@@ -41,5 +41,8 @@ def calculate_forecasts(df, config):
         inverse_quadratic_scale=(
             config.forecast.inverse_quadratic_scale
         ),
+        inverse_quadratic_reference_variance=(
+            config.forecast.inverse_quadratic_reference_variance
+        ),
         clipped_scale=config.forecast.clipped_scale,
     )

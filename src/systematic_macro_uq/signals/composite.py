@@ -26,13 +26,14 @@ def add_mapped_forecasts(
     df,
     average_forecast,
     inverse_quadratic_scale,
+    inverse_quadratic_reference_variance,
     clipped_scale,
 ):
     """Add fixed, variance-matched nonlinear forecast mappings.
 
-    The constants preserve variance under a standard-normal input signal.
-    They are fixed independently of this dataset, so no sample normalization
-    or future information enters either mapping.
+    The constants preserve variance under the capped Gaussian Carver
+    reference. They are fixed independently of this dataset, so no sample
+    normalization or future information enters either mapping.
     """
     df = df.copy()
 
@@ -41,12 +42,16 @@ def add_mapped_forecasts(
         average_forecast
         * inverse_quadratic_scale
         * scaled
-        / (1 + scaled.pow(2))
+        / (
+            inverse_quadratic_reference_variance
+            + scaled.pow(2)
+        )
     )
-    df["forecast_clip10"] = (
+    turning_point = inverse_quadratic_reference_variance**0.5
+    df["forecast_clipped"] = (
         average_forecast
         * clipped_scale
-        * scaled.clip(-1, 1)
+        * scaled.clip(-turning_point, turning_point)
     )
 
     return df
