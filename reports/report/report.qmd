@@ -355,7 +355,7 @@ considered independently.
 In later work, Carver tested rule-specific double V and tighter scale and cap
 mappings in Strategy Twelve of *Advanced Futures Trading Strategies*
 [@carver2023]. Sharpe rose only from approximately 1.27 to 1.29, which he
-judged inSsufficient to justify the additional complexity. This result does
+judged insufficient to justify the additional complexity. This result does
 not rule out a simpler alternative applied after forecast combination.
 We therefore test whether a single fixed response to the combined
 forecast materially outperforms the linear mapping, and whether the result is
