@@ -1,0 +1,3 @@
+volatility_model,cost_bps,inverse_quadratic_sharpe,linear_sharpe,inverse_quadratic_minus_linear
+span32_70_30_blend,2,1.0394366011852978,0.6968095333044272,0.3426270678808706
+span36_short_only,2,1.0503778856657564,0.7172055572251229,0.3331723284406335

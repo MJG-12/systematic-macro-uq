@@ -1,0 +1,714 @@
+---
+title: "Alternative position sizing for a Carver trend and carry futures portfolio"
+subtitle: "Adaptive conformal risk scaling and nonlinear forecast response"
+date: 2026-07-29
+date-format: "D MMMM YYYY"
+bibliography: references.bib
+link-citations: true
+format:
+  pdf:
+    pdf-engine: pdflatex
+    documentclass: article
+    papersize: a4
+    fontsize: 10pt
+    geometry:
+      - margin=22mm
+    toc: true
+    number-sections: true
+    colorlinks: true
+  html:
+    toc: true
+    number-sections: true
+---
+
+## Abstract
+
+This study tests two changes to the final position sizing of a published
+Carver trend and carry futures baseline while holding its alpha forecasts
+fixed. Adaptive Conformal Inference (ACI) replaces volatility with the scaled
+half width of a rolling symmetric conformal interval; fixed conformal controls
+for the value of adaptation. A fixed inverse quadratic response instead
+changes how the capped combined forecast translates into exposure.
+
+The baseline trades 12 futures across four asset classes. Development ends on
+31 December 2021, followed by a holdout from January 2022 through April 2026.
+At 2 bps one way, ACI raises development Sharpe from 0.697 to 0.810 and
+improves local calibration, but records -0.007 in the holdout versus 0.073 for
+volatility sizing. The inverse quadratic response raises development Sharpe
+to 1.039, with broad gains across costs and markets, but records -0.035 in the
+holdout.
+
+Neither candidate establishes a stable improvement over linear volatility
+sizing. The inverse quadratic development evidence remains worth independent
+replication, while the ACI result shows that improved uncertainty calibration
+need not produce a better sizing denominator.
+
+## Research question and contribution
+
+The project asks:
+
+> Can conformal risk scaling or a fixed nonlinear forecast response improve
+> the risk adjusted performance of a published Carver trend and carry futures
+> baseline?
+
+Two distinct mechanisms are considered.
+
+1. **Adaptive conformal risk denominator.** ACI is the conformal method of
+   interest. A signal free empirical interval half width replaces volatility
+   only in final position sizing. A fixed conformal rule is
+   retained as a control: fixed conformal versus volatility sizing measures
+   the effect of the conformal denominator, while ACI versus fixed conformal
+   isolates the incremental value of adapting the miscoverage level.
+2. **Nonlinear forecast response.** The usual linear forecast is replaced by a
+   fixed nonlinear response that amplifies moderate forecasts while reducing
+   exposure to the most extreme forecasts.
+
+Neither candidate introduces a new directional signal. The conformal score
+contains no forecast sign, and the nonlinear mappings preserve the sign of the
+baseline forecast. This restriction keeps the study focused on sizing.
+
+Both candidates produce sufficiently strong development evidence to reach the
+holdout, but neither is consistently superior across the two samples. ACI and
+its sizing application were specified in advance, and fixed conformal is
+retained only as a control. The conformal coverage is selected during
+development, whereas the inverse quadratic form and its normalization are
+fixed independently of the development returns.
+
+## Data and futures construction
+
+The source data are CME Globex daily contract definitions, settlement
+statistics and volume statistics obtained from Databento. Data begin in 2011.
+
+| Asset class | Markets | Fixed class allocation |
+|---|---|---:|
+| Equity indices | ES, NQ | 25% |
+| Rates | ZN, ZB | 25% |
+| FX | 6E, 6J | 25% |
+| Commodities | CL, NG, GC, HG, ZC, ZS | 25% |
+
+: Futures universe and portfolio level asset class allocations. Allocation is
+equal within each class. {#tbl-universe}
+
+Contracts are eligible only when they exceed a market specific minimum number
+of days to expiry. A liquidity roll from the front to the next eligible
+contract requires the next contract to have greater volume on two consecutive
+observations; the schedule cannot subsequently move backwards to an earlier
+expiry.
+
+Signals and returns deliberately use different price constructions:
+
+- EWMAC is calculated on an additive stitched price series formed from the
+  point changes of the contract held. This prevents artificial price jumps at
+  rolls.
+- Portfolio profit and loss uses the percentage return of the contract
+  actually held.
+- Carry compares the selected contract with the adjacent point on the curve
+  and annualizes the price difference by the expiry gap.
+
+This is a continuous notional backtest. It does not translate weights into
+integer contracts or test margin feasibility; costs are stylized linear bps
+rather than contract specific spreads, commissions and slippage.
+
+## Experimental design
+
+@fig-timeline shows the fixed chronology.
+
+![The 2011 data warm up the slowest forecast. IDM is estimated before
+development, and selected sizing rules are evaluated in the
+holdout.](figures/sample_timeline.png){#fig-timeline width=95%}
+
+The slowest EWMAC rule requires 256 observations, so valid combined forecasts
+begin in early 2012. The usable periods are:
+
+- **IDM estimation:** 5 January 2012--3 January 2014.
+- **development:** 6 January 2014--31 December 2021.
+- **holdout:** 3 January 2022--30 April 2026.
+
+The development period is used for diagnostics and the decision to advance a
+candidate. The conformal coverage is selected during development; the
+inverse quadratic form and its normalization are fixed independently of it.
+Holdout results are not used to modify either reported rule, the market
+universe or portfolio construction.
+
+The canonical cost is 2 bps one way. Results are also retained at 1 and 5 bps.
+Turnover is drift aware: the desired position is compared with the previous
+position after market and portfolio returns. A futures roll is charged as both
+the close of the old contract and the open of the new contract.
+
+## Fixed trend and carry baseline
+
+### Forecast construction
+
+The forecast sleeve follows the chapter 15 companion specification for
+*Systematic Trading* [@carver2015].
+
+| Component | Scalar | Weight |
+|---|---:|---:|
+| EWMAC 16/64 | 3.75 | 0.21 |
+| EWMAC 32/128 | 2.65 | 0.08 |
+| EWMAC 64/256 | 1.87 | 0.21 |
+| Carry | 30.00 | 0.50 |
+
+: Fixed component scalars and weights. {#tbl-forecast-rules}
+
+Raw carry is annualized price carry divided by annualized price volatility and
+is smoothed daily using `ewm(com=90)`. Each component is capped at
+$\pm 20$. Their weighted combination is multiplied by a forecast
+diversification multiplier (FDM) of 1.31 and capped again at $\pm 20$.
+
+The FDM operates **within an instrument**. Averaging imperfectly correlated
+rules would otherwise shrink the scale of the combined forecast; the fixed FDM
+restores the intended forecast magnitude. It is taken from the companion
+specification rather than estimated from this dataset.
+
+Volatility uses the update in Strategy Three of *Advanced Futures Trading
+Strategies* [@carver2023]. The short estimate is a recursive EWMA of squared
+daily returns with span 32. The final estimate is 70% short volatility and 30%
+of its rolling ten year average, with an expanding history before ten years are
+available. Annualization uses 256 trading days. We use the blended estimator
+throughout because it addresses Carver's finding that unusually low recent
+volatility can inflate extreme volatility normalized forecasts, while leaving
+the trend and carry rules unchanged.
+
+### Portfolio construction and IDM
+
+Information through date $t$ determines the next trading day's position:
+
+$$
+w_{i,t+1}
+=
+a_i\,IDM\,
+\frac{0.10}{\widehat{\sigma}_{i,t}}
+\frac{F_{i,t}}{10},
+$$
+
+where $a_i$ is the fixed instrument allocation,
+$\widehat{\sigma}_{i,t}$ is annualized volatility and $F_{i,t}$ is the
+capped combined forecast. The 10% target is a scaling convention rather than
+an optimized parameter. Positions are not normalized back to a fixed daily
+gross exposure.
+
+The instrument diversification multiplier operates **across markets**. It is
+estimated from early subsystem returns,
+
+$$
+r^{sub}_{i,t}
+=
+\frac{F_{i,t-1}}{\widehat{\sigma}_{i,t-1}}r_{i,t}.
+$$
+
+IDM depends on correlations between market subsystems before portfolio
+weights. The 10% volatility target and division by the average forecast are
+common positive constants, while multiplying each market by its positive
+instrument allocation also leaves pairwise correlations unchanged. These
+factors are therefore omitted from the subsystem returns. Let $a$ be the
+vector of fixed instrument weights and let $C$ be the correlation matrix of
+the resulting subsystem returns. The weights enter separately below, negative
+sample correlations are floored at zero, and
+
+$$
+IDM
+=
+\min\left(
+\frac{1}{\sqrt{a^\top C a}},
+2.5
+\right).
+$$
+
+The resulting value is 2.1361. It is calculated once with the standalone IDM
+script and stored as the default used by every strategy.
+
+## Candidate one: adaptive conformal sizing
+
+### Hypothesis and construction
+
+Conformal prediction targets marginal coverage rather than economic value
+[@vovk2005]. This application asks whether its empirical interval half width
+can nevertheless serve as a better final risk denominator than volatility.
+
+For each market, we use a symmetric interval. The point prediction for the next
+held return is zero and the score is the absolute raw return. The central set
+formed at the end of date $t-1$ for the return held on date $t$ is
+
+$$
+C_{i,t\mid t-1}=[-q_{i,t\mid t-1},q_{i,t\mid t-1}],
+$$
+
+where $q_{i,t\mid t-1}$ is a finite sample conformal quantile of the previous
+256 completed scores. Fixed conformal holds the nominal coverage level
+constant. Its finite sample coverage guarantee relies on exchangeability. ACI
+starts from the same level and maintains a separate miscoverage level
+$\alpha_{i,t}$ for each market, updated over time to target long run empirical
+coverage under distribution shift,
+
+$$
+\alpha_{i,t+1}
+=
+\alpha_{i,t}
++0.005((1-c)-e_{i,t}),
+$$
+
+where $e_{i,t}=1$ when the realized return falls outside its set
+[@gibbs2021].
+
+The interval half width is placed on a standard deviation equivalent
+annualized scale through
+
+$$
+s_{i,t\mid t-1}^{(c)}
+=
+\frac{\sqrt{256}\,q_{i,t\mid t-1}}
+{\Phi^{-1}((1+c)/2)}.
+$$
+
+Under a zero mean Gaussian reference the ratio
+$q/\Phi^{-1}((1+c)/2)$ equals standard deviation. The reference quantile
+therefore fixes the exposure scale; it is not used to construct or calibrate
+the conformal interval. The baseline numerator and all other portfolio
+machinery remain fixed:
+
+$$
+w^{conf}_{i,t}
+=
+a_i\,IDM\,
+\frac{0.10}{s_{i,t\mid t-1}^{(c)}}
+\frac{F_{i,t-1}}{10}.
+$$
+
+There is no gross exposure normalization.
+
+### Development selection
+
+The grid begins at the conventional 95% central coverage level because the
+denominator is intended to reflect tail behavior rather than ordinary return
+dispersion. This distinction is particularly relevant when return tails are
+heavier than the Gaussian reference used only for scale conversion. Coverage
+levels from 95% through 99% are examined on development. At the canonical
+2 bps:
+
+| Target coverage | Fixed Sharpe | ACI Sharpe | Fixed realized | ACI realized |
+|---:|---:|---:|---:|---:|
+| 95% | 0.739 | 0.810 | 95.03% | 94.89% |
+| 96% | 0.721 | 0.818 | 95.79% | 95.93% |
+| 97% | 0.715 | 0.815 | 96.94% | 96.93% |
+| 98% | 0.700 | 0.751 | 97.72% | 97.92% |
+| 99% | 0.738 | 0.643 | 98.96% | 98.95% |
+
+: Development sensitivity at 2 bps one way. {#tbl-conformal-grid}
+
+The 95--97% ACI results form a narrow plateau; 96% has the highest sample
+Sharpe. The conventional 95% level is advanced because it is the lower edge of
+that plateau and its quantile is supported by more tail observations in the
+256 score calibration window, not because it maximizes development
+performance. At the upper end of the 98--99% settings, adaptive updates can
+request an order statistic beyond the range that 256 calibration scores can
+resolve. ACI then produces an infinite radius and a zero position. Those
+observations are abstention rather than ordinary continuous scaling.
+
+### Selected rule across samples
+
+| Sample | Denominator | CAGR | Sharpe | Max drawdown | Realized coverage |
+|---|---|---:|---:|---:|---:|
+| Development | Volatility | 4.89% | 0.697 | -9.85% | -- |
+| Development | Fixed conformal | 4.92% | 0.739 | -8.98% | 95.03% |
+| Development | ACI | 5.53% | 0.810 | -8.85% | 94.89% |
+| Holdout | Volatility | 0.25% | 0.073 | -15.61% | -- |
+| Holdout | Fixed conformal | -0.43% | -0.006 | -18.79% | 94.92% |
+| Holdout | ACI | -0.39% | -0.007 | -16.06% | 95.01% |
+
+: Selected conformal denominator at 2 bps. {#tbl-conformal-selected}
+
+The fixed rule provides the control needed to interpret ACI. In development,
+fixed conformal adds 0.042 Sharpe relative to volatility sizing, and ACI adds
+a further 0.071 relative to fixed conformal. In the holdout, fixed conformal
+trails volatility sizing by 0.079, while ACI differs from fixed conformal by
+only -0.001.
+
+The statistical target is met almost exactly in the holdout, but neither fixed
+nor adaptive conformal sizing improves the economic result. ACI reduces realized
+volatility from 9.36% to 8.16% and average gross exposure from 1.275 to 1.125,
+but it does not improve return, Sharpe or maximum drawdown relative to the
+volatility sized baseline. Relative to fixed conformal, ACI improves local
+calibration: the mean absolute deviation between each market's rolling 256 day
+miscoverage rate and the 5% target falls from 2.19 to 1.65 percentage points in
+development and from 2.03 to 1.76 points in the holdout. Better calibration
+therefore does not translate into better portfolio performance in this
+application and sample.
+
+## Candidate two: fixed inverse quadratic response
+
+### Why test a nonlinear response?
+
+A linear forecast assumes that twice the forecast strength deserves twice the
+position, up to the cap. Carver's pooled tests support non binary forecasts in
+general, but also show flattening or reversal in the wings, particularly for
+slower EWMAC rules and possibly carry [@carver2020nonbinary].
+
+Some of this pattern may be an artefact of volatility normalization:
+unusually low recent volatility can inflate normalized forecasts. In Carver's
+EWMAC tests, replacing the short volatility estimator with the blended
+estimator removed much of the volatility bias associated with the wings, 
+but a residual nonlinear response remained [@carver2020volatility]. 
+Thus, nonlinear forecast response and volatility estimation cannot be 
+considered independently.
+
+In later work, Carver tested rule-specific double V and tighter scale and cap
+mappings in Strategy Twelve of *Advanced Futures Trading Strategies*
+[@carver2023]. Sharpe rose only from approximately 1.27 to 1.29, which he
+judged inSsufficient to justify the additional complexity. This result does
+not rule out a simpler alternative applied after forecast combination.
+We therefore test whether a single fixed response to the combined
+forecast materially outperforms the linear mapping, and whether the result is
+robust to the choice of volatility estimator.
+
+### Response specification and calibration
+
+Our alternative to the linear mapping is the fixed inverse-quadratic response
+used by @moskowitz2025. Its shape is motivated by the one-asset
+Ferson--Siegel solution [@ferson2001],
+
+$$
+f(s)
+\propto
+\frac{\mu(s)}
+{\sigma_\varepsilon^2+\mu(s)^2}.
+$$
+
+The nonlinear momentum benchmark standardizes its signal, takes
+$\mu(s)=s$ and $\sigma_\varepsilon^2=1$, and therefore obtains
+$s/(1+s^2)$. We apply this fixed shape to Carver's combined trend and carry
+forecast.
+
+Let $F\in[-20,20]$ denote the final capped forecast and let $x=F/10$ denote
+its linear position strength. To translate $x$ into the unit variance signal
+scale used by the nonlinear benchmark, we adopt a mean zero Gaussian reference
+calibrated to Carver's forecast convention: expected absolute magnitude 10
+before applying the cap at $\pm20$. In $x$ units, define
+
+$$
+X^*
+\sim
+N\left(0,\frac{\pi}{2}\right),
+\qquad
+X=\operatorname{clip}(X^*,-2,2).
+$$
+
+This gives
+
+$$
+v=E[X^2]=\operatorname{Var}(X)=1.279475,
+\qquad
+s=\frac{x}{\sqrt v}.
+$$
+
+Since the fixed benchmark is $s/(1+s^2)$, substituting
+$s=x/\sqrt v$ gives a response proportional to $x/(v+x^2)$. The three
+shapes in Carver's $x$ units, before their final vertical scaling, are:
+
+| Method | Response | Role |
+|---|---|---|
+| Linear | $x$ | Published baseline |
+| Clipped control | $\operatorname{clip}(x,-\sqrt v,\sqrt v)$ | Tests saturation |
+| Inverse quadratic | $x/(v+x^2)$ | Tests smooth attenuation |
+
+Both alternatives are scaled to have the same root mean square forecast
+magnitude as the linear response under this reference. This normalization
+removes an arbitrary difference in overall scale while preserving how exposure
+changes with forecast strength under each mapping. For any random variable
+$Y$, its root mean square (RMS) is
+
+$$
+\operatorname{RMS}(Y)=\sqrt{E[Y^2]}.
+$$
+
+If $h$ denotes either alternative response, the required multiplier is
+
+$$
+b_h
+=
+\sqrt{
+\frac{E[X^2]}
+{E[h(X)^2]}
+},
+$$
+
+which ensures that
+
+$$
+E\left[\left(b_h h(X)\right)^2\right]
+=
+E[X^2]
+=
+v.
+$$
+
+This gives $b_{\mathrm{IQ}}=3.170506$ and
+$b_{\mathrm{clip}}=1.341270$. RMS matching equates the second moments of the
+alternative and linear responses under the reference distribution; it does
+not force equal average gross exposure in the backtest.
+
+In Carver forecast units, the implemented mappings are
+
+$$
+F^{IQ}
+=
+10(3.170506)\frac{x}{v+x^2},
+$$
+
+and
+
+$$
+F^{clip}
+=
+10(1.341270)
+\operatorname{clip}(x,-\sqrt v,\sqrt v).
+$$
+
+The inverse quadratic response reaches its maximum, and the clipped control
+stops increasing, at $|F|=10\sqrt v=11.3114$.
+
+![Linear, clipped and inverse quadratic responses against the combined forecast
+before its final cap. The dashed lines mark $\pm20$; all mappings receive the
+capped forecast and are therefore flat beyond them.](figures/forecast_mappings.png){#fig-mappings width=80%}
+
+The clipped control rises linearly to the same 11.31 threshold and then holds
+exposure constant, whereas the inverse quadratic response declines beyond it.
+Comparing them shows whether any benefit comes merely from ceasing to increase
+positions at large forecasts or from actively reducing them.
+
+The standardized signal construction provides one principled calibration of
+the turning point. Carver's forecast taxonomy provides another: a magnitude
+of 10 is average, 15 is strong and 20 is very strong [@carver2015]. A general
+category anchored response can be written as
+
+$$
+F^{IQ,T}
+=
+A_T\frac{F}{1+(F/T)^2}.
+$$
+
+With $T=15$, exposure would increase through a strong forecast and decline as
+forecasts become very strong. With $T=20$, it would increase through the
+entire permitted range and begin declining only for pre cap forecasts beyond
+the very strong threshold. Applying either response to the pre cap composite
+$G=1.31\sum_jw_jF_j$ would allow the smooth mapping to replace Carver's hard
+cap rather than follow it. This taxonomy based construction is an interesting
+alternative and a natural subject for subsequent testing.
+
+### Development diagnostics
+
+The signed target is the next day volatility scaled return multiplied by the
+sign of the combined forecast. If linear sizing were well calibrated, its
+conditional mean should generally rise with absolute forecast strength.
+
+| Absolute forecast | Observations | Mean signed target | Median signed target |
+|---|---:|---:|---:|
+| 0--5 | 8,298 | 0.0100 | 0.0237 |
+| 5--10 | 7,269 | 0.0397 | 0.0618 |
+| 10--15 | 5,980 | 0.0327 | 0.0442 |
+| 15--20 | 2,609 | -0.0311 | -0.0355 |
+
+: Fixed bin response over the canonical development period.
+{#tbl-development-bins}
+
+The response peaks at ordinary forecast strength and reverses in the final
+bin. This is indicative rather than confirmatory because pooled market days
+are dependent. The bins are a mechanism diagnostic motivated by Carver's
+prior forecast linearity tests; they did not determine the inverse quadratic
+functional form.
+
+Because Carver attributed much of the extreme forecast response to
+underestimated volatility in low volatility states, the comparison is
+repeated under the short EWMA and the blended estimator. Everything else,
+including the final IDM, is held fixed.
+
+| Volatility model | Linear Sharpe | Inverse quadratic Sharpe | Difference |
+|---|---:|---:|---:|
+| Span 36 short only EWMA | 0.717 | 1.050 | 0.333 |
+| Span 32 70/30 blend | 0.697 | 1.039 | 0.343 |
+
+: Development volatility diagnostic at 2 bps. {#tbl-volatility-check}
+
+The inverse quadratic Sharpe advantage is 0.333 with the short EWMA and 0.343
+with the blend. The improved estimator lowers absolute risk and drawdown but
+does not explain the relative mapping result. This is a robustness check, not
+a complete mechanism decomposition.
+
+## Strategy evidence
+
+### Development
+
+At the canonical 2 bps cost, both nonlinear mappings outperform linear sizing.
+
+| Mapping | CAGR | Volatility | Sharpe | Max drawdown | Average gross exposure |
+|---|---:|---:|---:|---:|---:|
+| Linear | 4.89% | 7.23% | 0.697 | -9.85% | 1.764 |
+| Clipped control | 7.35% | 8.70% | 0.859 | -11.35% | 2.158 |
+| Inverse quadratic | 9.68% | 9.31% | 1.039 | -11.54% | 2.430 |
+
+: Development performance at 2 bps one way. {#tbl-development-performance}
+
+The inverse quadratic advantage is not confined to the canonical cost:
+
+| Cost | Linear Sharpe | Clipped control Sharpe | Inverse quadratic Sharpe |
+|---:|---:|---:|---:|
+| 1 bp | 0.751 | 0.912 | 1.094 |
+| 2 bps | 0.697 | 0.859 | 1.039 |
+| 5 bps | 0.534 | 0.698 | 0.876 |
+
+: Development cost sensitivity. {#tbl-development-costs}
+
+At 2 bps, the inverse quadratic response also improves Sharpe in both
+equal length halves:
+1.080 versus 0.797 in the first and 0.998 versus 0.594 in the second. Net
+return contribution at 2 bps improves in all four asset classes and in 11 of
+12 markets; gold is the exception.
+
+The mapping changes exposure as intended. Average gross exposure rises because
+ordinary forecasts are amplified, from 1.764 to 2.430. Maximum gross exposure
+falls from 3.658 to 3.598, and maximum single market exposure falls from 1.481
+to 1.296.
+Average daily turnover rises from 0.153 to 0.197. The development gain is
+therefore not a free reduction in risk: it comes from a materially different
+allocation across forecast states.
+
+### Holdout
+
+The linear baseline itself is weak in the holdout, with a Sharpe of 0.073 at
+2 bps. The inverse quadratic response realizes higher volatility but a lower
+return.
+
+| Mapping | CAGR | Volatility | Sharpe | Max drawdown | Average gross exposure |
+|---|---:|---:|---:|---:|---:|
+| Linear | 0.25% | 9.36% | 0.073 | -15.61% | 1.275 |
+| Clipped control | -0.01% | 10.54% | 0.052 | -19.83% | 1.480 |
+| Inverse quadratic | -1.05% | 11.41% | -0.035 | -23.86% | 1.745 |
+
+: Holdout performance at 2 bps one way. {#tbl-holdout-performance}
+
+The inverse quadratic response trails the linear point estimate at 1, 2 and 5
+bps. It improves net contribution at 2 bps in 6 of 12 markets and in
+commodities and FX as groups, while trailing in equities and rates. It leads
+in 2022 and trails in each subsequent calendar year in the available sample.
+
+![Cumulative net returns at 2 bps. The holdout baseline is weak and neither
+nonlinear response improves its path.](figures/cumulative_returns.png){#fig-cumulative width=100%}
+
+The exposure mechanics continue to work. Relative to linear, the inverse
+quadratic response raises average gross exposure from 1.275 to 1.745 and
+maximum gross exposure from 2.760 to 2.885, while maximum single market
+exposure falls from 0.903 to 0.788. The holdout underperformance is therefore
+not an implementation failure: the mapping applies the intended response, but
+the emphasized forecast states do not earn sufficient returns.
+
+![Change in annualized net contribution at 2 bps from replacing linear sizing
+with the inverse quadratic response. Development breadth narrows materially in
+the holdout.](figures/market_attribution.png){#fig-attribution width=85%}
+
+\clearpage
+
+### Conditional response across samples
+
+Applying the identical bins after the primary holdout comparison helps explain
+the change descriptively.
+
+| Sample | 0--5 | 5--10 | 10--15 | 15--20 |
+|---|---:|---:|---:|---:|
+| Development mean | 0.0100 | 0.0397 | 0.0327 | -0.0311 |
+| Development median | 0.0237 | 0.0618 | 0.0442 | -0.0355 |
+| Holdout mean | 0.0040 | -0.0018 | 0.0217 | -0.0020 |
+| Holdout median | 0.0176 | 0.0078 | 0.0498 | 0.0656 |
+
+: Mean and median signed next day targets in the fixed forecast bins.
+{#tbl-bin-comparison}
+
+![The development sweet spot at 5--10 disappears in the holdout, while the
+extreme bin reversal becomes approximately flat.](figures/forecast_bins.png){#fig-bins width=78%}
+
+The 5--10 region that the inverse quadratic response strongly amplifies
+changes from the best development bin to a slightly negative holdout mean.
+The final bin is approximately flat rather than strongly negative, so
+attenuating it offers less benefit. Holdout medians remain positive and differ
+materially from the means, indicating that tail observations affect these
+noisy pooled averages.
+
+This bin comparison is an explanatory post result diagnostic. It is not used
+to revise the response function.
+
+## Interpretation of results
+
+### What can be concluded about ACI?
+
+ACI attains its coverage target and improves local calibration relative to
+fixed conformal. It also improves development performance. In the holdout, its
+Sharpe is essentially unchanged from fixed conformal and remains below the
+linear baseline, although its maximum drawdown is smaller than fixed
+conformal's. The evidence therefore does not confirm that adaptive calibration
+improves sizing in this application, but the available sample is insufficient
+to reject ACI more generally.
+
+### What can be concluded about nonlinear sizing?
+
+The evidence is mixed.
+
+The development result has more evidential value than a conventional fitted
+backtest. The response is taken from a published benchmark, the normalization
+constants are fixed independently of the data, and the improvement survives
+multiple costs, subperiods, volatility estimators and most markets. The
+development effect is too broad to dismiss as the direct product of tuning a
+free shape parameter.
+
+The holdout nevertheless matters. It provides no corroboration that the
+mapping is consistently better, and it shows that the conditional response
+can vary substantially across periods. A weak baseline does not invalidate the
+relative comparison, but it makes inference from roughly 4.3 years of returns
+especially noisy.
+
+The development result is broad enough to remain interesting, but the holdout
+does not support replacing linear sizing. A longer record or genuinely
+different markets would be needed to determine whether the development
+pattern persists. The cap anchored response remains a possible implementation
+for future work.
+
+## Limitations
+
+- The universe contains only 12 futures and the holdout approximately 4.3
+  years. Markets within and across asset classes are not independent
+  replications.
+- The inverse quadratic form and constants are not fitted, and the decision to
+  test it is motivated by the fixed benchmark of @moskowitz2025 and Carver's
+  prior evidence on forecast linearity. The decision to advance it is
+  nevertheless informed by development performance.
+- Fixed bins summarize dependent and heavy tailed observations. Their means
+  are useful descriptions, not precise estimates of a structural conditional
+  response. The volatility diagnostic tests one improved estimator; it does
+  not identify the complete mechanism behind the nonlinear result.
+- The conformal evidence applies to the chosen zero prediction centre,
+  absolute return score, 256 observation window and final denominator
+  application rather than to ACI generally.
+- Continuous notional weights are not translated into integer contracts, and
+  margin feasibility is not tested. Costs are stylized linear bps rather than
+  contract specific execution estimates.
+
+## Conclusion
+
+This project holds a credible trend and carry forecast fixed and tests two
+changes to final position sizing. ACI reaches its coverage target and improves
+local calibration, but that improvement does not translate into better
+portfolio performance in the holdout. This result does not reject ACI more
+generally, but it does not support this denominator as a replacement for
+volatility sizing.
+
+The inverse quadratic response produces broad development gains without
+fitting parameters to strategy returns, but the holdout does not reproduce
+them. Neither candidate therefore establishes a stable improvement over
+linear sizing. Linear volatility sizing remains the practical default, while
+both alternatives remain research hypotheses requiring independent
+replication. The evidence for the fixed nonlinear response is stronger than
+for the selected ACI application.
+
+
+## References {.unnumbered}
+
+::: {#refs}
+:::
