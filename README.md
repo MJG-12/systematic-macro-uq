@@ -3,10 +3,16 @@
 Can conformal risk scaling or a fixed nonlinear forecast response improve the
 performance of a published Carver trend and carry futures baseline?
 
-We apply both alternatives at the final sizing stage only, leaving the underlying alpha forecasts and all other portfolio conventions unchanged. The Ferson–Siegel variant replaces the baseline’s linear response to forecast strength with a fixed nonlinear mapping. The Adaptive Conformal Inference variant replaces volatility in the denominator of the sizing rule with the conformal interval half-width. Fixed conformal serves as the corresponding non-adaptive benchmark.
+We apply both alternatives at the final sizing stage only, leaving the
+underlying alpha forecasts and all other portfolio conventions unchanged. The
+first replaces the baseline's linear response to forecast strength with a
+fixed inverse quadratic response adapted from recent work on nonlinear time
+series momentum. The Adaptive Conformal Inference variant replaces volatility
+in the denominator of the sizing rule with the conformal interval half width.
+Fixed conformal serves as the corresponding nonadaptive benchmark.
 
 Both changes improved development performance, but neither improvement was
-corroborated in the holdout after 2021. The appropriate practical default
+corroborated in the 2022–2026 holdout. The appropriate practical default
 remains linear volatility sizing. The nonlinear result, however, is especially
 worth further testing because its response and normalization contain no
 parameters fitted to strategy returns, and its development advantage was
@@ -20,30 +26,28 @@ available under [`reports/report/results/`](reports/report/results/).
 
 The canonical comparison charges 2 bps on each side of a trade:
 
-| Sizing method | Development Sharpe, 2014–21 | Sharpe, 2022–26 |
+| Sizing method | Development Sharpe, 2014–21 | Holdout Sharpe |
 |---|---:|---:|
 | Linear volatility | 0.697 | 0.073 |
-| Clip at 10 | 0.913 | 0.019 |
-| Ferson–Siegel | 1.073 | -0.054 |
+| Clipped control | 0.859 | 0.052 |
+| Inverse quadratic | 1.039 | -0.035 |
 | Fixed conformal | 0.739 | -0.006 |
 | Adaptive conformal inference | 0.810 | -0.007 |
 
-The Ferson–Siegel improvement appeared at every tested cost, in both
+The inverse quadratic improvement appeared at every tested cost, in both
 halves of the development period and in 11 of 12 markets. Because its form and
-scaling were fixed independently of our data, this is notable
-development evidence, but the 2022–26 holdout result does not corroborate the
-improvement. A period of about 4.3 years is too short to establish whether the
-development result was persistent or specific to the sample.
+scaling were fixed independently of our data, this is notable development
+evidence, but the holdout result does not corroborate the improvement. A
+period of about 4.3 years is too short to establish whether the development
+result was persistent or specific to the sample.
 
 Adaptive conformal inference (ACI) reached 94.89% coverage in development and
 95.01% in holdout against a 95% target. It reduced rolling local coverage error
-relative to fixed conformal and improved development Sharpe. After 2021,
+relative to fixed conformal and improved development Sharpe. In the holdout,
 however, its Sharpe was essentially unchanged from fixed conformal and remained
 below linear volatility sizing. The available evidence therefore does not
 confirm that adaptive calibration improves sizing, but is still too limited to
 reject ACI more generally.
-
-A directional variant evaluated only during development produced a somewhat interesting abstention result at 99% coverage, but it remains an untested hypothesis.
 
 ## Experimental design
 
@@ -53,7 +57,7 @@ A directional variant evaluated only during development produced a somewhat inte
 | Data | Daily futures settlements, volume and contract definitions from 2011 |
 | IDM estimation | 5 January 2012–3 January 2014 |
 | Development | 6 January 2014–31 December 2021 |
-| Subsequent evaluation | 3 January 2022–30 April 2026 |
+| Holdout | 3 January 2022–30 April 2026 |
 | Allocation | 25% per asset class, equal within each class |
 | Risk convention | 10% annual portfolio volatility target |
 | Costs | 1, 2 and 5 bps on each side of a trade |
@@ -75,32 +79,31 @@ normalized to a fixed daily gross exposure.
 ### Nonlinear forecast response
 
 Carver's forecast linearity tests motivate asking whether extreme trend and
-carry forecasts deserve proportionally larger positions. The main alternative
-uses a response based on Ferson–Siegel:
+carry forecasts deserve proportionally larger positions. The linear baseline
+uses $x=F/10$ as its position strength. To express the fixed inverse
+quadratic benchmark from
+[Nonlinear Time Series Momentum](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5933974),
+in standardized signal units, we use a mean zero Gaussian reference calibrated
+to Carver's forecast convention: expected absolute magnitude 10 before
+applying the cap at $\pm20$. Under this reference, the capped position
+strength has variance $v$ and standardized value $s$:
 
 $$
-F^{\mathrm{FS}} = 10\frac{2.421x}{1+x^2},
+v=1.279,
 \qquad
-x = \frac{F}{10}.
+s=\frac{F/10}{\sqrt v}.
 $$
 
-Under a capped standard normal reference for forecast strength, the fixed
-constants give the Ferson–Siegel and clipped forecasts the same variance as the
-capped linear forecast. They are not estimated from this dataset. The simpler
-control clips the forecast at  $|F| = 10$.
-
-This is closely related to recent work on
-[nonlinear time series momentum](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5933974),
-which also applies a nonlinear response motivated by theory rather than fitting
-its main response to strategy returns. This project tests that idea on a fixed
-Carver trend and carry composite and keeps the evaluation beginning in 2022
-separate from development.
+The inverse quadratic candidate uses $s/(1+s^2)$, while the clipped control
+uses $\operatorname{clip}(s,-1,1)$. Both are given the same root mean square
+magnitude as the linear forecast under the reference. The smooth response
+reaches its maximum and the control stops increasing at $|F|=11.31$.
 
 ### Conformal risk sizing
 
 For each market, the symmetric conformal score is the absolute raw daily
 return. A rolling window of 256 completed scores produces a symmetric
-conformal prediction interval for the next day's return. Its half-width
+conformal prediction interval for the next day's return. Its half width
 replaces volatility in the final position denominator. ACI adapts the coverage
 level by market, while fixed conformal serves as the control.
 
@@ -118,7 +121,6 @@ src/systematic_macro_uq/
   conformal/     rolling calibration and risk application
   backtest/      positions, roll costs and evaluation
 scripts/         dataset, development and holdout runners
-experiments/     directional conformal abstention experiment
 reports/report/  report source, PDF, figures and compact results
 tests/           focused timing and portfolio safeguards
 ```
@@ -160,7 +162,7 @@ Quarto must be installed separately.
 
 ## Limitations
 
-- Twelve markets and approximately 4.3 subsequent years provide limited
+- Twelve markets and a holdout of approximately 4.3 years provide limited
   independent evidence for futures strategies with medium and long horizons.
 - The backtest uses continuous notional weights and does not translate them
   into integer contracts or test margin feasibility.
@@ -181,5 +183,7 @@ conclusions.
 - Robert Carver, *Advanced Futures Trading Strategies*, Harriman House, 2023.
 - Wayne Ferson and Andrew Siegel, “The Efficient Use of Conditioning
   Information in Portfolios,” *Journal of Finance*, 2001.
+- Tobias Moskowitz, Riccardo Sabbatucci, Andrea Tamoni and Björn Uhl,
+  “Nonlinear Time Series Momentum,” working paper, 2025.
 - Isaac Gibbs and Emmanuel Candes, “Adaptive Conformal Inference Under
   Distribution Shift,” NeurIPS, 2021.
