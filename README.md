@@ -95,7 +95,7 @@ s=\frac{F/10}{\sqrt v}.
 $$
 
 The inverse quadratic candidate uses $s/(1+s^2)$, while the clipped control
-uses $\operatorname{clip}(s,-1,1)$. Both are given the same root mean square
+uses $$\text{clip}(s,-1,1)$$. Both are given the same root mean square
 magnitude as the linear forecast under the reference. The smooth response
 reaches its maximum and the control stops increasing at $|F|=11.31$.
 
