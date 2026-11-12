@@ -10,18 +10,33 @@ format:
     pdf-engine: pdflatex
     documentclass: article
     papersize: a4
-    fontsize: 10pt
+    fontsize: 11pt
     geometry:
-      - margin=22mm
-    toc: true
+      - margin=25mm
+    toc: false
     number-sections: true
-    colorlinks: true
+    colorlinks: false
+    include-in-header:
+      - text: |
+          \usepackage{needspace}
+          \usepackage{etoolbox}
+          \usepackage{caption}
+          \usepackage{placeins}
+          \captionsetup{font=small,labelfont=bf}
+          \AtBeginEnvironment{longtable}{\small}
+          \setlength{\emergencystretch}{2em}
+          \widowpenalty=10000
+          \clubpenalty=10000
+          \displaywidowpenalty=10000
+          \raggedbottom
+          \pretocmd{\section}{\Needspace{5\baselineskip}}{}{}
+          \pretocmd{\subsection}{\Needspace{4\baselineskip}}{}{}
   html:
     toc: true
     number-sections: true
 ---
 
-## Abstract
+## Abstract {.unnumbered .unlisted}
 
 This study tests two changes to the final position sizing of a published
 Carver trend and carry futures baseline while holding its alpha forecasts
@@ -42,6 +57,8 @@ Neither candidate establishes a stable improvement over linear volatility
 sizing. The inverse quadratic development evidence remains worth independent
 replication, while the ACI result shows that improved uncertainty calibration
 need not produce a better sizing denominator.
+
+\clearpage
 
 ## Research question and contribution
 
@@ -316,7 +333,7 @@ observations are abstention rather than ordinary continuous scaling.
 | Holdout | Fixed conformal | -0.43% | -0.006 | -18.79% | 94.92% |
 | Holdout | ACI | -0.39% | -0.007 | -16.06% | 95.01% |
 
-: Selected conformal denominator at 2 bps. {#tbl-conformal-selected}
+: Selected conformal denominator at 2 bps. {#tbl-conformal-selected tbl-colwidths="[18,23,12,12,18,17]"}
 
 The fixed rule provides the control needed to interpret ACI. In development,
 fixed conformal adds 0.042 Sharpe relative to volatility sizing, and ACI adds
@@ -527,12 +544,14 @@ including the final IDM, is held fixed.
 | Span 36 short only EWMA | 0.717 | 1.050 | 0.333 |
 | Span 32 70/30 blend | 0.697 | 1.039 | 0.343 |
 
-: Development volatility diagnostic at 2 bps. {#tbl-volatility-check}
+: Development volatility diagnostic at 2 bps. {#tbl-volatility-check tbl-colwidths="[37,18,28,17]"}
 
 The inverse quadratic Sharpe advantage is 0.333 with the short EWMA and 0.343
 with the blend. The improved estimator lowers absolute risk and drawdown but
 does not explain the relative mapping result. This is a robustness check, not
 a complete mechanism decomposition.
+
+\Needspace{16\baselineskip}
 
 ## Strategy evidence
 
@@ -546,7 +565,7 @@ At the canonical 2 bps cost, both nonlinear mappings outperform linear sizing.
 | Clipped control | 7.35% | 8.70% | 0.859 | -11.35% | 2.158 |
 | Inverse quadratic | 9.68% | 9.31% | 1.039 | -11.54% | 2.430 |
 
-: Development performance at 2 bps one way. {#tbl-development-performance}
+: Development performance at 2 bps one way. {#tbl-development-performance tbl-colwidths="[24,12,14,12,18,20]"}
 
 The inverse quadratic advantage is not confined to the canonical cost:
 
@@ -556,7 +575,7 @@ The inverse quadratic advantage is not confined to the canonical cost:
 | 2 bps | 0.697 | 0.859 | 1.039 |
 | 5 bps | 0.534 | 0.698 | 0.876 |
 
-: Development cost sensitivity. {#tbl-development-costs}
+: Development cost sensitivity. {#tbl-development-costs tbl-colwidths="[10,22,33,35]"}
 
 At 2 bps, the inverse quadratic response also improves Sharpe in both
 equal length halves:
@@ -584,7 +603,7 @@ return.
 | Clipped control | -0.01% | 10.54% | 0.052 | -19.83% | 1.480 |
 | Inverse quadratic | -1.05% | 11.41% | -0.035 | -23.86% | 1.745 |
 
-: Holdout performance at 2 bps one way. {#tbl-holdout-performance}
+: Holdout performance at 2 bps one way. {#tbl-holdout-performance tbl-colwidths="[24,12,14,12,18,20]"}
 
 The inverse quadratic response trails the linear point estimate at 1, 2 and 5
 bps. It improves net contribution at 2 bps in 6 of 12 markets and in
@@ -605,7 +624,8 @@ the emphasized forecast states do not earn sufficient returns.
 with the inverse quadratic response. Development breadth narrows materially in
 the holdout.](figures/market_attribution.png){#fig-attribution width=85%}
 
-\clearpage
+\FloatBarrier
+\Needspace{12\baselineskip}
 
 ### Conditional response across samples
 
@@ -642,13 +662,13 @@ to revise the response function.
 ACI attains its coverage target and improves local calibration relative to
 fixed conformal. It also improves development performance. In the holdout, its
 Sharpe is essentially unchanged from fixed conformal and remains below the
-linear baseline, although its maximum drawdown is smaller than fixed
+volatility sized baseline, although its maximum drawdown is smaller than fixed
 conformal's. The evidence therefore does not confirm that adaptive calibration
 improves sizing in this application, but the available sample is insufficient
 to reject ACI more generally.
 
 Volatility clustering may help explain why volatility remains competitive
-here. Past volatility can then contain information about future volatility,
+here. Past volatility can contain information about future volatility,
 making a backward looking estimate useful for sizing. The predictive value of
 the conformal half width we use is not assessed directly.
 
@@ -712,6 +732,8 @@ both alternatives remain research hypotheses requiring independent
 replication. The evidence for the fixed nonlinear response is stronger than
 for the selected ACI application.
 
+
+\clearpage
 
 ## References {.unnumbered}
 
