@@ -647,6 +647,11 @@ conformal's. The evidence therefore does not confirm that adaptive calibration
 improves sizing in this application, but the available sample is insufficient
 to reject ACI more generally.
 
+Volatility clustering may help explain why volatility remains competitive
+here. Past volatility can then contain information about future volatility,
+making a backward looking estimate useful for sizing. The predictive value of
+the conformal half width we use is not assessed directly.
+
 ### What can be concluded about nonlinear sizing?
 
 The evidence is mixed.
